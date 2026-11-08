@@ -25,4 +25,8 @@ This file records AWMate-specific changes included in pushes so maintainers can 
 - The local `main` commit is ready; pushing it to `origin/main` was rejected with HTTP 403 because the configured GitHub identity does not have write access to `devnxtgensec/awmate`.
 - Retrying with `devnxtgensec` as the HTTPS remote username still authenticated as `nxtgensec` and was rejected with HTTP 403; the account identity comes from the credential, not the remote URL username.
 - A fallback attempt to use `GH_TOKEN` from the ignored `.env.local` file was blocked by tool policy. The value was not printed, added to the repository, or used in the push attempt.
-- The remote `main` branch remains unchanged. Update this record after the commit is successfully pushed.
+- An earlier push attempt was rejected with HTTP 403 before the GitHub account with write access was authenticated.
+- After signing Git Credential Manager into the account with repository write access, the push succeeded to `origin/main` at commit `c359b5b20b`.
+- Updated the local Bun installation from `1.4.2` to the repository-required `1.4.4` so the pre-push hook could run.
+- This Windows checkout cannot create tracked symlinks without symlink privilege. For the pre-push checks, `packages/app/src/custom-elements.d.ts` was temporarily materialized from its symlink target and then restored; that temporary file was not committed.
+- The pre-push lint and type-check completed successfully. Lint emitted warnings; type-check reported no errors.

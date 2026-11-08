@@ -38,6 +38,10 @@ separate from the installed OpenCode app. The AWMate build also uses its own upd
 OpenCode build over the customized app. Until that feed is published, distribute updated installers through the AWMate
 website's `/download` route.
 
+Keep `OPENCODE_VERSION` set to the version in the repository's root `package.json` (currently `2.2.5`), even when the
+AWMate release tag uses a separate version such as `0.1.4`. The bundled CLI advertises `OPENCODE_VERSION` to the OpenCode
+Free service, which requires version `1.18.0` or newer.
+
 `bun dev` is separate from packaging: it uses local renderer/server mode, the dev app identity, and the CLI source by
 default. `bun dev --download-server <version>` instead downloads that CLI version for local development.
 

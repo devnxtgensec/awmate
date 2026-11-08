@@ -218,10 +218,15 @@ export function getConfig() {
       return {
         ...base,
         appId,
-        productName: "OpenCode Dev",
+        // "Modified for AWMate": keep the dev application ID for an isolated Windows profile while giving the installer our product name.
+        productName: process.env.AWMATE_BUILD === "1" ? "AWMate" : "OpenCode Dev",
         publish: {
           provider: "generic",
-          url: "https://opencode.ai/update/api/dev/desktop/opencode/",
+          // "Modified for AWMate": AWMate builds must never auto-update to an upstream OpenCode build.
+          url:
+            process.env.AWMATE_BUILD === "1"
+              ? "https://awmate.nxtgensec.org/updates/desktop/"
+              : "https://opencode.ai/update/api/dev/desktop/opencode/",
           channel: "latest",
         },
         deb: { fpm: [...previewCompressionFpm("deb"), metainfoFpm(appId)] },

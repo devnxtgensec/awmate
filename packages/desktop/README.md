@@ -31,6 +31,13 @@ The CLI is placed outside `app.asar` in the application's resources directory, a
 `bun run build` uses `packages/cli/dist` when that holds the target's CLI. Otherwise `dev` (and `local`, unset or unrecognized)
 downloads the published dev CLI, `beta` downloads the beta CLI, and `prod`/`latest` fail.
 
+### AWMate Windows installer
+
+Set `AWMATE_BUILD=1` while packaging the Windows x64 `dev` channel to name the installer AWMate and keep its app ID
+separate from the installed OpenCode app. The AWMate build also uses its own updater URL so it cannot install an upstream
+OpenCode build over the customized app. Until that feed is published, distribute updated installers through the AWMate
+website's `/download` route.
+
 `bun dev` is separate from packaging: it uses local renderer/server mode, the dev app identity, and the CLI source by
 default. `bun dev --download-server <version>` instead downloads that CLI version for local development.
 

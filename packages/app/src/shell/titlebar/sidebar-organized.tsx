@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { createEffect, createMemo, Show, onCleanup, untrack, type Accessor, type JSX } from "solid-js"
+import { createEffect, createMemo, Show, onCleanup, untrack, type JSX } from "solid-js"
 import { Key } from "@solid-primitives/keyed"
 import { createStore } from "solid-js/store"
 import { useQuery } from "@tanstack/solid-query"
@@ -41,7 +41,6 @@ const SidebarState = Persistence.struct({
 
 export function SidebarOrganized(props: {
   currentTab: Tab | undefined
-  children: (highlightActive: Accessor<boolean>, onNavigate: () => void) => JSX.Element
 }) {
   const language = useLanguage()
 
@@ -81,8 +80,6 @@ export function SidebarOrganized(props: {
     thumbTrack: HTMLDivElement | undefined
     hoverTarget: HTMLDivElement | undefined
   }>({ projectSession: undefined, thumbTrack: undefined, hoverTarget: undefined })
-
-  const selectTabs = () => setLocal("projectSession", undefined)
 
   const projectSelected = () => {
     const tab = props.currentTab
@@ -148,13 +145,6 @@ export function SidebarOrganized(props: {
               </div>
             </Show>
           </section>
-          <div class="flex shrink-0 flex-col gap-3" classList={{ hidden: tabs.store.length === 0 }}>
-            <Show when={!state.projectsCollapsed}>
-              <div role="separator" class="mx-2 h-px shrink-0 bg-v2-border-border-muted" />
-            </Show>
-            {/* The empty strip still owns tab shortcuts; only its visual section is hidden. */}
-            {props.children(() => !projectSelected(), selectTabs)}
-          </div>
         </div>
       </ScrollView>
     </div>
@@ -293,13 +283,14 @@ function ProjectList(props: {
 
                 const limit = () => local.sessionLimits[key()] ?? 5
 
+                // "Modified for AWMate": show each project's session threads by default.
                 return (
                   <ProjectRow
                     project={project()}
                     server={conn()}
                     actions={projectActions}
                     index={index()}
-                    expanded={!!props.state.expanded[key()]}
+                    expanded={props.state.expanded[key()] ?? true}
                     onToggle={() => {
                       if (props.state.expanded[key()]) setLocal("sessionLimits", key(), 5)
                       props.onExpand(key())

@@ -19,7 +19,6 @@ import { useServers } from "@/runtime/server/registry"
 import { useTabs } from "@/shell/tabs/tabs"
 import {
   CollapsedSidebarToggle,
-  collapsedSidebarToggleEnd,
   measureSidebarToggles,
   paintCollapsedSlots,
 } from "@/shell/sidebar-toggle"
@@ -69,13 +68,13 @@ export default function Layout(props: ParentProps) {
   }
 
   let peekSurface: HTMLDivElement | undefined
-  let peekHome: HTMLElement | null | undefined
 
   // The docked sidebar and its peek are one sidebar, shown as far in as whichever has it further.
   const sidebarHidden = () => (sidebar.peek === undefined ? sidebar.closed : Math.min(sidebar.closed, 1 - sidebar.peek))
 
   // A peek slides the contents in its own box, where docking slides them by sizing the aside. Reduced motion fades
   // them in place instead.
+  // "Modified for AWMate": the project/session tree replaces the Home row in the sidebar header.
   const paintSidebarContents = () => {
     const mount = state.tabsMount
 
@@ -96,17 +95,6 @@ export default function Layout(props: ParentProps) {
       peekSurface.style.transform = shift
     }
 
-    // Without traffic lights, Home starts the sidebar's header right where the collapsed toggle floats over a peek, so
-    // it steps past the toggle until a dock carries the toggle to the header's end.
-    if (peeking && peekHome === undefined)
-      peekHome = mount.querySelector<HTMLElement>('[data-slot="sidebar-header"][data-home] > :first-child')
-
-    if (peekHome)
-      peekHome.style.transform = peeking
-        ? `translateX(calc(${(rtl ? -1 : 1) * sidebar.closed} * (${collapsedSidebarToggleEnd}px - var(--sidebar-inset-start))))`
-        : ""
-
-    if (!peeking) peekHome = undefined
   }
 
   const sidebarMotion = createPanelMotion({

@@ -670,7 +670,8 @@ test("an unread tab whose run failed shows the failed dot, as the inbox does", a
   await expect(tab(c.id).locator('[data-mark="failed"]')).toBeHidden()
 })
 
-test("vertical tabs resize, scroll, show shortcut hints, and navigate", async ({ page }) => {
+// "Modified for AWMate": vertical sidebar navigation has no Home row.
+test("vertical tabs resize, scroll, and navigate without a Home row", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 480 })
   const directory = "C:/OpenCode/Tabs"
   await mockWorkspace(page, {
@@ -679,7 +680,8 @@ test("vertical tabs resize, scroll, show shortcut hints, and navigate", async ({
     seed: {
       settings: {
         appearance: { tabLayout: "vertical" },
-        keybinds: { "home.toggle": "ctrl+alt+h", "tab.new": "ctrl+shift+n" },
+        general: { sidebarOrganize: "list" },
+        keybinds: { "tab.new": "ctrl+shift+n" },
       },
       tabs: [
         a.id,
@@ -697,21 +699,30 @@ test("vertical tabs resize, scroll, show shortcut hints, and navigate", async ({
   await expect(page.locator('[data-slot="titlebar-tabs"]')).toHaveCount(0)
 
   // Actions and session rows share one icon lane, and the resize handle fills only the gap after the rows.
-  const [homeIcon, avatar, row, gutter, chat] = await Promise.all([
-    sidebar.locator('[data-action="vertical-tabs-home"] svg').boundingBox(),
+  const [searchIcon, avatar, row, gutter, chat] = await Promise.all([
+    sidebar.locator('[data-action="vertical-tabs-search"] svg').boundingBox(),
     sidebar.locator('[data-slot="project-avatar-slot"]').first().boundingBox(),
     sidebar.locator("[data-titlebar-tab]").first().boundingBox(),
     sidebar.locator('[data-component="resize-handle"]').boundingBox(),
     page.locator('[data-slot="session-chat-panel"]').boundingBox(),
   ])
 
-  if (!homeIcon || !avatar || !row || !gutter || !chat) throw new Error("vertical tabs layout is not rendered")
-  expect(avatar.x).toBe(homeIcon.x)
+  if (!searchIcon || !avatar || !row || !gutter || !chat) throw new Error("vertical tabs layout is not rendered")
+  expect(avatar.x).toBe(searchIcon.x)
+  await expect(sidebar.getByRole("button", { name: "Home", exact: true })).toHaveCount(0)
+  await expect(sidebar.getByRole("button", { name: "AWMate account", exact: true })).toBeVisible()
+  await sidebar.getByRole("button", { name: "AWMate account", exact: true }).click()
+  const accountMenu = page.getByRole("menu")
+  await expect(accountMenu.getByRole("menuitem", { name: "Settings", exact: true })).toBeVisible()
+  await expect(accountMenu.getByRole("menuitem", { name: "Help", exact: true })).toBeVisible()
+  await expect(accountMenu.getByRole("menuitem")).toHaveCount(2)
+  await expect(accountMenu.getByText("Local workspace", { exact: true })).toBeVisible()
+  await page.keyboard.press("Escape")
   expect(gutter.x).toBe(row.x + row.width)
   expect(gutter.x + gutter.width).toBe(chat.x)
 
   const actions = await Promise.all(
-    ["vertical-tabs-home", "vertical-tabs-search", "vertical-tabs-new-session"].map(async (action) => {
+    ["vertical-tabs-search", "vertical-tabs-new-session"].map(async (action) => {
       const box = await sidebar.locator(`[data-action="${action}"]`).boundingBox()
 
       if (!box) throw new Error(`${action} is not rendered`)
@@ -721,7 +732,7 @@ test("vertical tabs resize, scroll, show shortcut hints, and navigate", async ({
   )
 
   const gaps = actions.slice(1).map((box, index) => box.y - (actions[index].y + actions[index].height))
-  expect(gaps).toEqual([3, 3])
+  expect(gaps).toEqual([3])
 
   const handle = sidebar.locator('[data-component="resize-handle"]')
 
@@ -739,7 +750,7 @@ test("vertical tabs resize, scroll, show shortcut hints, and navigate", async ({
   await resize(-44, "196px")
   await resize(-40, "156px")
 
-  for (const name of ["Home", "New session"]) {
+  for (const name of ["Search sessions", "New session"]) {
     const label = sidebar.getByRole("button", { name, exact: true }).getByText(name, { exact: true })
     await expect(label).toBeVisible()
     await expect
@@ -748,10 +759,6 @@ test("vertical tabs resize, scroll, show shortcut hints, and navigate", async ({
   }
 
   await resize(-200, "136px")
-  const homeLabel = sidebar.getByRole("button", { name: "Home", exact: true }).getByText("Home", { exact: true })
-  await expect
-    .poll(() => homeLabel.evaluate((element) => element.scrollWidth - element.clientWidth))
-    .toBeLessThanOrEqual(1)
   await resize(800, "640px")
   await resize(-380, "260px")
 
@@ -769,16 +776,6 @@ test("vertical tabs resize, scroll, show shortcut hints, and navigate", async ({
   await scroll.evaluate((element) => element.scrollTo(0, element.scrollHeight))
   await expect(tabB).toBeInViewport({ ratio: 1 })
   await expect.poll(feather).toEqual(["16px", "0px"])
-
-  await page.locator("html").evaluate((element) => element.setAttribute("dir", "rtl"))
-  const home = sidebar.locator('[data-action="vertical-tabs-home"]')
-
-  const hint = home.locator('div[aria-hidden="true"]')
-  await expect(hint.locator('[data-slot="keybind-v2-label"]')).toHaveText(["Ctrl", "Alt", "H"])
-  await expect(hint.locator('[data-component="keybind-v2"]')).toHaveCSS("direction", "ltr")
-  await expect(hint).toBeHidden()
-  await home.focus()
-  await expect(hint).toBeVisible()
 
   await tabB.click()
   await expectPath(page, sessionHref(b.id))
@@ -1579,27 +1576,58 @@ test("⌘W in the side panel closes its last New tab with the panel, and only th
 test("the Windows titlebar menu pastes through the desktop edit action", async ({ page }) => {
   await mockWorkspace(page, { name: "WindowsMenu", sessions: [] })
   await page.goto(`/e2e/utils/windows-menu.html?${new URLSearchParams({ server: SERVER })}`)
-  await page.getByRole("button", { name: "OpenCode menu", exact: true }).click()
-  await page.getByRole("menuitem", { name: "Edit", exact: true }).click()
+  await page.getByRole("button", { name: "Edit", exact: true }).click()
   const paste = page.getByRole("menuitem", { name: /^Paste/ })
   await expect(paste).toHaveText("PasteCtrl+V")
   await paste.click()
   await expect(page.getByRole("status", { name: "Desktop menu actions" })).toHaveText("edit.paste")
 })
 
-test("the Windows menu shares the vertical sidebar's icon lane", async ({ page }) => {
-  await mockWorkspace(page, {
-    name: "WindowsMenu",
-    sessions: [],
-    seed: { settings: { appearance: { tabLayout: "vertical" } } },
+// "Modified for AWMate": cover project folders without duplicate tab rows, menubar spacing, Home removal and account actions.
+test("the Windows titlebar organizes project threads and exposes account actions", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  const workspace = await mockWorkspace(page, {
+    name: "AWMate",
+    sessions: [
+      { id: "ses_awmate_context", title: "Project context" },
+      { id: "ses_awmate_ui", title: "UI work" },
+    ],
+    seed: {
+      settings: {
+        appearance: { tabLayout: "vertical" },
+        general: { sidebarOrganize: "projects" },
+      },
+    },
   })
-  await page.goto(`/e2e/utils/windows-menu.html?${new URLSearchParams({ server: SERVER })}`)
+  await page.goto(
+    `/e2e/utils/windows-menu.html?${new URLSearchParams({ server: SERVER, path: sessionHref(workspace.sessions[0].id) })}`,
+  )
 
-  const menu = page.getByRole("button", { name: "OpenCode menu", exact: true }).locator("svg")
+  const sidebar = page.locator('[data-slot="vertical-tabs-sidebar"]')
+  const project = sidebar.getByRole("button", { name: "A AWMate", exact: true })
+  await expect(project).toHaveAttribute("aria-expanded", "true")
+  await expect(sidebar.getByRole("button", { name: "Project context", exact: true })).toBeVisible()
+  await expect(sidebar.getByRole("button", { name: "UI work", exact: true })).toBeVisible()
+  await expect(sidebar.locator("[data-titlebar-tab-slot]")).toHaveCount(0)
+  await expect(sidebar.getByRole("button", { name: "Home", exact: true })).toHaveCount(0)
+  await expect(sidebar).toHaveAttribute("data-state", "open")
+  await expect(sidebar.locator(':scope > div.absolute.inset-0.z-20:not([data-slot])')).toHaveClass(/hidden/)
 
-  const home = page.locator('[data-action="vertical-tabs-home"] svg')
-  await expect(home).toBeVisible()
-  await expect.poll(async () => [(await menu.boundingBox())?.x, (await home.boundingBox())?.x]).toEqual([19, 19])
+  const controls = ["Navigate back", "Navigate forward", "Toggle sidebar", "File", "Edit", "View", "Help"]
+  await Promise.all(controls.map((name) => expect(page.getByRole("button", { name, exact: true })).toBeVisible()))
+
+  const account = page.getByRole("button", { name: "AWMate account", exact: true })
+  await expect(account).toBeVisible()
+
+  await page.getByRole("button", { name: "File", exact: true }).click()
+  const newWindow = page.getByRole("menuitem", { name: /New Window/ })
+  await expect(newWindow).toBeVisible()
+  const [label, shortcut] = await Promise.all([
+    newWindow.locator('[data-slot="menu-v2-item-content"]').boundingBox(),
+    newWindow.locator('[data-slot="menu-v2-item-shortcut"]').boundingBox(),
+  ])
+  if (!label || !shortcut) throw new Error("File menu shortcut layout is not rendered")
+  expect(label.x + label.width).toBeLessThanOrEqual(shortcut.x)
 })
 
 for (const row of [

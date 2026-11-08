@@ -3,13 +3,13 @@ import { createMediaQuery } from "@solid-primitives/media"
 import { Show } from "solid-js"
 import { createHomeController } from "./model"
 import { createHomeProjectsController } from "./projects/controller"
-import { HomeUtilityNav } from "./projects/view"
 import { HomeProjects } from "./projects/region"
 import { createHomeScrollController } from "./scroll"
 import { createHomeSessionSearchController } from "./sessions/search"
 import { createHomeSessionsController } from "./sessions/controller"
 import { HomeSessions } from "./sessions/region"
 
+// "Modified for AWMate": Settings and Help are provided by the sidebar account menu.
 export function Home() {
   const mobile = createMediaQuery("(max-width: 767px)")
   const home = createHomeController()
@@ -50,14 +50,6 @@ export function Home() {
           <HomeSessions sessions={sessions} search={search} scroll={scroll} />
         </div>
       </ScrollView>
-      <div class="hidden shrink-0 px-3 py-2 md:block lg:hidden">
-        <HomeUtilityNav
-          class="flex"
-          onOpenSettings={projects.utility.settings}
-          onOpenHelp={projects.utility.help}
-          language={projects.copy.language}
-        />
-      </div>
     </div>
   )
 }

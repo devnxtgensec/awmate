@@ -2,6 +2,7 @@ import type { HomeProjectsController } from "./controller"
 import { HomeProjectsView } from "./view"
 import type { HomeScrollController } from "../scroll"
 
+// "Modified for AWMate": the Home project list delegates account actions to the sidebar footer.
 export function HomeProjects(props: {
   projects: HomeProjectsController
   scroll: HomeScrollController
@@ -39,8 +40,6 @@ export function HomeProjects(props: {
       onRevealProject={props.projects.project.reveal}
       onClearNotifications={props.projects.project.clearNotifications}
       onHideProject={props.projects.project.hide}
-      onOpenSettings={props.projects.utility.settings}
-      onOpenHelp={props.projects.utility.help}
     />
   )
 }

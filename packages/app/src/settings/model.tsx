@@ -307,11 +307,13 @@ export const defaultSettings: Settings = {
     newIcons: false,
     foldUserMessages: false,
     newQuestionUI: false,
-    sidebarOrganize: "list",
+    // "Modified for AWMate": launch with project folders and their sessions nested underneath.
+    sidebarOrganize: "projects",
     mobileTitlebarPosition: "top",
     followUpBehavior: "steer",
   },
-  appearance: { fontSize: 14, mono: "", sans: "", terminal: "", tabLayout: "horizontal", reduceMotion: "system" },
+  // "Modified for AWMate": make the organized project/session tree the primary sidebar.
+  appearance: { fontSize: 14, mono: "", sans: "", terminal: "", tabLayout: "vertical", reduceMotion: "system" },
   keybinds: {},
   permissions: { autoApprove: false, autoApproveProjects: {} },
   workspaces: { defaultDestination: "last-used", lastUsed: {} },

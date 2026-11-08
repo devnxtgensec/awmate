@@ -165,7 +165,10 @@
   }
 
   [data-component="menu-v2-content"].desktop-app-menu:not(.desktop-app-menu-sub) {
-    width: 160px;
+    /* "Modified for AWMate": give labels and keyboard shortcuts room without overlap. */
+    width: max-content;
+    min-width: 200px;
+    max-width: min(320px, calc(100vw - 24px));
   }
 
   [data-component="menu-v2-content"].desktop-app-menu-sub {

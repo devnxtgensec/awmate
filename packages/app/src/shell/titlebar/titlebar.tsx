@@ -7,6 +7,7 @@ import { IconButton } from "@opencode/ui/icon-button"
 import { Icon } from "@opencode/ui/icon"
 import { Keybind } from "@opencode/ui/keybind"
 import { Tooltip } from "@opencode/ui/tooltip"
+import { Menu } from "@opencode/ui/menu"
 
 import { useLayout } from "@/shell/state/layout"
 import { usePlatform } from "@/runtime/platform/platform"
@@ -141,7 +142,6 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
 
   const titlebarItems = useTitlebarItems()
   const hideVerticalTitlebar = createMemo(() => !!props.verticalTabs && !windows())
-  const homeInSidebarHeader = () => !windows() && !macTrafficLights()
 
   command.register(() => [
     {
@@ -303,8 +303,6 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
 
             const openNewTab = () => openDraft(uuid())
 
-            const toggleHome = () => tabs.toggleHome({ home: layout.route().type === "home", current: currentTab() })
-
             const verticalTabStrip = (highlightActive?: () => boolean, onNavigate?: () => void) => (
               <TitlebarTabStrip
                 orientation="vertical"
@@ -324,53 +322,6 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                 onCloseTabs={(items, keep) => tabsStoreActions.closeTabs(items.map(tabKey), keep)}
                 onReorder={(keys) => tabsStoreActions.reorder(keys)}
               />
-            )
-
-            const homeButton = (vertical = false) => (
-              <Show
-                when={vertical}
-                fallback={
-                  <Tooltip
-                    placement="bottom"
-                    value={
-                      <>
-                        {language.t("home.title")}
-                        <Keybind keys={command.keybindParts("home.toggle")} variant="neutral" />
-                      </>
-                    }
-                    class="shrink-0"
-                  >
-                    <IconButton
-                      type="button"
-                      variant="ghost-muted"
-                      size="large"
-                      class="!w-9 shrink-0"
-                      icon={<Icon name="grid-plus" />}
-                      state={layout.route().type === "home" ? "pressed" : undefined}
-                      onClick={toggleHome}
-                      aria-label={language.t("home.title")}
-                      aria-pressed={layout.route().type === "home"}
-                    />
-                  </Tooltip>
-                }
-              >
-                <button
-                  type="button"
-                  data-titlebar-tab-action
-                  data-action="vertical-tabs-home"
-                  data-state={layout.route().type === "home" ? "pressed" : undefined}
-                  class="group flex h-7 w-full shrink-0 items-center gap-2 rounded-[6px] px-2 text-[13px] leading-4 text-v2-text-text-faint hover:text-v2-text-text-base data-[state=pressed]:text-v2-text-text-base"
-                  onClick={toggleHome}
-                  aria-label={language.t("home.title")}
-                  aria-pressed={layout.route().type === "home"}
-                >
-                  <Icon name="grid-plus" class="shrink-0" />
-                  <span class="min-w-0 truncate">{language.t("home.title")}</span>
-                  <div class="ms-auto hidden shrink-0 group-hover:block group-focus-visible:block" aria-hidden="true">
-                    <Keybind keys={command.keybindParts("home.toggle")} variant="neutral" dir="ltr" />
-                  </div>
-                </button>
-              </Show>
             )
 
             const searchButton = (vertical = false) => (
@@ -415,18 +366,8 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
               </Show>
             )
 
+            // "Modified for AWMate": remove the Home shortcut; project folders are the navigation root.
             command.register("titlebar-home", () => [
-              {
-                id: "home.toggle",
-                title: language.t("home.title"),
-                category: language.t("command.category.view"),
-                keybind: windows() ? "alt+home" : "mod+b",
-                hidden: true,
-                onSelect: () => {
-                  if (layout.route().type !== "home") layout.home.searchFocus.request()
-                  toggleHome()
-                },
-              },
               {
                 id: "sessions.search",
                 title: language.t("command.session.search"),
@@ -560,20 +501,36 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                   "pb-[max(0px,calc(8px-var(--shell-safe-area-bottom,var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px)))))]":
                     bottom(),
                   "pl-2.5": macTrafficLights(),
-                  // The menu glyph sits 2px further into its slot than the sidebar icons sit into their rows.
+                  // "Modified for AWMate": align the navigation controls with the sidebar icons.
                   "ps-[calc(var(--sidebar-inset-start)-2px)]": windows() && !!props.verticalTabs,
                   "ps-3.5": windows() && !props.verticalTabs,
                 }}
               >
+                <Show when={windows()}>
+                  {/* "Modified for AWMate": place navigation and sidebar controls before the desktop menubar. */}
+                  <IconButton
+                    variant="ghost-muted"
+                    size="large"
+                    class="shrink-0 [app-region:no-drag]"
+                    icon={<Icon name="arrow-left" />}
+                    aria-label={language.t("common.goBack")}
+                    onClick={history.back}
+                  />
+                  <IconButton
+                    variant="ghost-muted"
+                    size="large"
+                    class="shrink-0 [app-region:no-drag]"
+                    icon={<Icon name="arrow-right" />}
+                    aria-label={language.t("common.goForward")}
+                    onClick={history.forward}
+                  />
+                  <SidebarToggle />
+                </Show>
                 <Show when={windows() || linux()}>
                   <WindowsAppMenu command={command} platform={platform} />
                 </Show>
-                <Show when={windows() && props.verticalTabs}>
-                  <SidebarToggle />
-                </Show>
                 <Show when={!mobile() && !props.verticalTabs}>
                   <div class="flex shrink-0 items-center gap-0.5">
-                    {homeButton()}
                     {searchButton()}
                   </div>
                 </Show>
@@ -663,20 +620,6 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                             {language.t("command.session.new")}
                           </button>
                           <div class="flex shrink-0 flex-col gap-1 border-t border-v2-border-border-muted pt-2">
-                            <button
-                              type="button"
-                              data-action="mobile-tabs-home"
-                              data-state={layout.route().type === "home" ? "pressed" : undefined}
-                              aria-current={layout.route().type === "home" ? "page" : undefined}
-                              class="flex h-7 w-full items-center gap-2 rounded-[6px] px-2 text-[13px] leading-4 text-v2-text-text-faint data-[state=pressed]:text-v2-text-text-base focus-visible:outline-none"
-                              onClick={() => {
-                                if (layout.route().type !== "home") toggleHome()
-                                closeMobileTabs()
-                              }}
-                            >
-                              <Icon name="grid-plus" />
-                              {language.t("home.title")}
-                            </button>
                             <div class="flex items-center gap-1">
                               <button
                                 type="button"
@@ -745,16 +688,10 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                             ref={(element) => (element.className = "flex size-full min-h-0 flex-col")}
                           >
                             <Show when={!windows()}>
-                              {/* Shares the session header's 48px center line. Without traffic lights, Home fills the
-                                  start so the row doesn't leave an empty band. */}
+                              {/* "Modified for AWMate": keep the sidebar toggle without a Home navigation row. */}
                               <div
                                 data-slot="sidebar-header"
-                                data-home={homeInSidebarHeader() ? "" : undefined}
-                                class="flex w-full shrink-0 gap-2"
-                                classList={{
-                                  "items-start pt-2.5 pb-[3px]": homeInSidebarHeader(),
-                                  "mb-0.5 h-12 items-center": !homeInSidebarHeader(),
-                                }}
+                                class="mb-0.5 flex h-12 w-full shrink-0 items-center gap-2"
                                 style={{
                                   "min-height": macVerticalTabs()
                                     ? `${macTrafficLightsTopClearance / zoom()}px`
@@ -772,14 +709,11 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                     aria-hidden="true"
                                   />
                                 </Show>
-                                <Show when={homeInSidebarHeader()} fallback={<div class="flex-1" />}>
-                                  <div class="min-w-0 flex-1">{homeButton(true)}</div>
-                                </Show>
+                                <div class="flex-1" />
                                 <SidebarToggle handoff="out" />
                               </div>
                             </Show>
                             <div class="flex w-full shrink-0 flex-col gap-[3px]">
-                              <Show when={!homeInSidebarHeader()}>{homeButton(true)}</Show>
                               {searchButton(true)}
                               <RecentlyClosedTabsMenu
                                 vertical
@@ -796,7 +730,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                     when={settings.general.sidebarOrganize() === "projects"}
                                     fallback={verticalTabStrip()}
                                   >
-                                    <SidebarOrganized currentTab={currentTab()}>{verticalTabStrip}</SidebarOrganized>
+                                    <SidebarOrganized currentTab={currentTab()} />
                                   </Show>
                                 }
                               >
@@ -808,6 +742,52 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                 <TitlebarItems items={titlebarItems} vertical />
                               </div>
                             </Show>
+                            {/* "Modified for AWMate": show a local workspace account with only Settings and Help actions. */}
+                            <div class="mt-auto w-full shrink-0 border-t border-v2-border-border-muted pt-2">
+                              <Menu appearance="standard" gutter={6} modal={false} placement="top-start">
+                                <Menu.Trigger
+                                  type="button"
+                                  class="flex w-full items-center gap-2 rounded-lg p-2 text-start hover:bg-v2-background-bg-layer-02 focus-visible:outline-none focus-visible:bg-v2-background-bg-layer-02 [app-region:no-drag]"
+                                  aria-label="AWMate account"
+                                  title="Account"
+                                >
+                                  <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-v2-background-bg-layer-02 text-[12px] font-semibold text-v2-text-text-base">
+                                    AW
+                                  </span>
+                                  <span class="flex min-w-0 flex-1 flex-col">
+                                    <span class="truncate text-13-medium text-v2-text-text-base">AWMate</span>
+                                    <span class="truncate text-11-regular text-v2-text-text-muted">Local workspace</span>
+                                  </span>
+                                  <Icon name="chevron-right" size="small" class="shrink-0 text-v2-icon-icon-muted" />
+                                </Menu.Trigger>
+                                <Menu.Portal>
+                                  <Menu.Content class="desktop-app-menu w-[252px]">
+                                    <div class="flex items-center gap-3 px-2 py-2">
+                                      <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-v2-background-bg-layer-02 text-[12px] font-semibold text-v2-text-text-base">
+                                        AW
+                                      </span>
+                                      <span class="flex min-w-0 flex-col">
+                                        <span class="truncate text-13-medium text-v2-text-text-base">AWMate</span>
+                                        <span class="truncate text-11-regular text-v2-text-text-muted">Local workspace</span>
+                                      </span>
+                                    </div>
+                                    <Menu.Separator />
+                                    <Menu.Group>
+                                      <Menu.Item onSelect={() => openSettings()}>
+                                        <Icon name="settings-gear" size="small" />
+                                        {language.t("sidebar.settings")}
+                                      </Menu.Item>
+                                      <Menu.Item
+                                        onSelect={() => platform.openExternal("https://opencode.ai/desktop-feedback")}
+                                      >
+                                        <Icon name="help" size="small" />
+                                        {language.t("sidebar.help")}
+                                      </Menu.Item>
+                                    </Menu.Group>
+                                  </Menu.Content>
+                                </Menu.Portal>
+                              </Menu>
+                            </div>
                           </Portal>
                         )}
                       </Show>

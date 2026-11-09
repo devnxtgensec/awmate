@@ -2,6 +2,27 @@
 
 This file records AWMate-specific changes included in pushes so maintainers can distinguish them from upstream OpenCode code. Add a dated entry whenever AWMate changes are pushed.
 
+## 2026-11-09 — Desktop Google sign-in and gateway access
+
+### Changes
+
+- Added Google sign-in, account status, and sign-out to the Electron Account menu. Desktop sessions are encrypted with Electron `safeStorage` and are revoked on sign-out.
+- Require AWMate sign-in before the desktop accepts a query or quote reply. The editor draft remains available while the user completes browser sign-in.
+- Load only the account's enabled LiteLLM models into the AWMate provider through the platform's authenticated proxy. Gateway requests are checked against current account access and LiteLLM enforces user budgets.
+- Added the device login flow, session endpoints, D1 migration, and OpenAI-compatible gateway proxy to `awmate-platform`.
+- Added the end-to-end flow and rollout notes in `AWMATE_ACCOUNT_AUTH.md`.
+
+### Verification
+
+- AWMate Electron production build and desktop/app typechecks passed. The Windows checkout's generated declaration symlink was temporarily materialized for typechecking and restored.
+- Platform production build and Cloudflare function typecheck passed.
+- D1 remote migration `0002_desktop_auth.sql` applied successfully.
+- Production Google OAuth approval and streamed LiteLLM requests still require a live desktop sign-in to verify.
+
+### Push record
+
+- Pending platform and AWMate commits/pushes for this entry.
+
 ## 2026-11-08 — Project sidebar and account menu
 
 ### Changes

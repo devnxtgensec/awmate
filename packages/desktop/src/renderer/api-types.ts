@@ -16,6 +16,9 @@ import type {
 export type ElectronAPI = {
   awaitInitialization(): Promise<ServerReadyData>
   reconnectService(signal?: AbortSignal): Promise<ServerReadyData>
+  awmateAuthStatus(): Promise<{ email: string; name: string; gatewayEnabled: boolean } | null>
+  awmateAuthSignIn(): Promise<{ email: string; name: string; gatewayEnabled: boolean }>
+  awmateAuthSignOut(): Promise<void>
   onSidecarChanged(cb: (data: ServerReadyData) => void): () => void
   readyDeepLinks(): void
   acknowledgeDeepLinks(attempt: number): void

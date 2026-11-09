@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, Match, on, onCleanup, Show, Switch, untrack } from "solid-js"
+import { createEffect, createMemo, createSignal, Match, on, onCleanup, onMount, Show, Switch, untrack } from "solid-js"
 import { Portal } from "solid-js/web"
 import { useLocation } from "@solidjs/router"
 import { uuid } from "@opencode/util/uuid"
@@ -74,6 +74,16 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
   const command = useCommand()
   const language = useLanguage()
   const settings = useSettings()
+  const [awmateAccount, setAWMateAccount] = createSignal<{ email: string; name: string; gatewayEnabled: boolean }>()
+  const [awmateAuthBusy, setAWMateAuthBusy] = createSignal(false)
+  const [awmateAuthError, setAWMateAuthError] = createSignal("")
+
+  onMount(() => {
+    void platform
+      .awmateAuthStatus?.()
+      .then(setAWMateAccount)
+      .catch((error) => setAWMateAuthError(String(error)))
+  })
 
   const openSettings = useSettingsDialog()
   const dialog = useDialog()
@@ -530,9 +540,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                   <WindowsAppMenu command={command} platform={platform} />
                 </Show>
                 <Show when={!mobile() && !props.verticalTabs}>
-                  <div class="flex shrink-0 items-center gap-0.5">
-                    {searchButton()}
-                  </div>
+                  <div class="flex shrink-0 items-center gap-0.5">{searchButton()}</div>
                 </Show>
 
                 <Show
@@ -742,7 +750,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                 <TitlebarItems items={titlebarItems} vertical />
                               </div>
                             </Show>
-                            {/* "Modified for AWMate": show a local workspace account with only Settings and Help actions. */}
+                            {/* "Modified for AWMate": show the signed-in account with gateway status, sign-in, Settings, and Help. */}
                             <div class="mt-auto w-full shrink-0 border-t border-v2-border-border-muted pt-2">
                               <Menu appearance="standard" gutter={6} modal={false} placement="top-start">
                                 <Menu.Trigger
@@ -755,8 +763,12 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                     AW
                                   </span>
                                   <span class="flex min-w-0 flex-1 flex-col">
-                                    <span class="truncate text-13-medium text-v2-text-text-base">AWMate</span>
-                                    <span class="truncate text-11-regular text-v2-text-text-muted">Local workspace</span>
+                                    <span class="truncate text-13-medium text-v2-text-text-base">
+                                      {awmateAccount()?.name ?? "AWMate"}
+                                    </span>
+                                    <span class="truncate text-11-regular text-v2-text-text-muted">
+                                      {awmateAccount()?.email ?? "Sign in to AWMate"}
+                                    </span>
                                   </span>
                                   <Icon name="chevron-right" size="small" class="shrink-0 text-v2-icon-icon-muted" />
                                 </Menu.Trigger>
@@ -767,12 +779,56 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                         AW
                                       </span>
                                       <span class="flex min-w-0 flex-col">
-                                        <span class="truncate text-13-medium text-v2-text-text-base">AWMate</span>
-                                        <span class="truncate text-11-regular text-v2-text-text-muted">Local workspace</span>
+                                        <span class="truncate text-13-medium text-v2-text-text-base">
+                                          {awmateAccount()?.name ?? "AWMate"}
+                                        </span>
+                                        <span class="truncate text-11-regular text-v2-text-text-muted">
+                                          {awmateAccount()?.email ?? "Not signed in"}
+                                        </span>
                                       </span>
                                     </div>
                                     <Menu.Separator />
                                     <Menu.Group>
+                                      <Show when={platform.awmateAuthSignIn && !awmateAccount()}>
+                                        <Menu.Item
+                                          onSelect={() => {
+                                            setAWMateAuthBusy(true)
+                                            setAWMateAuthError("")
+                                            void platform
+                                              .awmateAuthSignIn?.()
+                                              .then(setAWMateAccount)
+                                              .catch((error) => setAWMateAuthError(String(error)))
+                                              .finally(() => setAWMateAuthBusy(false))
+                                          }}
+                                        >
+                                          {awmateAuthBusy() ? "Waiting for Google sign-in…" : "Sign in with Google"}
+                                        </Menu.Item>
+                                      </Show>
+                                      <Show when={awmateAccount()}>
+                                        <div class="px-2 py-1 text-11-regular text-v2-text-text-muted">
+                                          {awmateAccount()?.gatewayEnabled
+                                            ? "Gateway access enabled"
+                                            : "Gateway access not enabled"}
+                                        </div>
+                                        <Menu.Item
+                                          onSelect={() => {
+                                            setAWMateAuthBusy(true)
+                                            void platform
+                                              .awmateAuthSignOut?.()
+                                              .then(() => setAWMateAccount(undefined))
+                                              .catch((error) => setAWMateAuthError(String(error)))
+                                              .finally(() => setAWMateAuthBusy(false))
+                                          }}
+                                        >
+                                          Sign out
+                                        </Menu.Item>
+                                      </Show>
+                                      <Show when={awmateAuthError()}>
+                                        <div class="px-2 py-1 text-11-regular text-v2-text-text-danger">
+                                          {awmateAuthError()}
+                                        </div>
+                                      </Show>
+                                      <Menu.Separator />
                                       <Menu.Item onSelect={() => openSettings()}>
                                         <Icon name="settings-gear" size="small" />
                                         {language.t("sidebar.settings")}

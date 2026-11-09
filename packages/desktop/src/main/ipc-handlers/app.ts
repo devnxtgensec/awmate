@@ -14,6 +14,8 @@ import { BackgroundService } from "../service/background-service"
 import { SidecarCredentials } from "../service/sidecar-credentials"
 import { getWindowID, setBackgroundColor } from "../windows"
 import { sender } from "./context"
+import { signIn, signOut, status } from "../service/awmate-auth"
+import { openExternalURL } from "../files"
 
 export const appHandlers = AppRpcs.toLayer(
   Effect.gen(function* () {
@@ -25,6 +27,20 @@ export const appHandlers = AppRpcs.toLayer(
     return AppRpcs.of({
       AppAwaitInitialization: () => background.connection.pipe(Effect.map(SidecarCredentials.ready)),
       AppReconnectService: () => background.reconnect.pipe(Effect.map(SidecarCredentials.ready)),
+      AppAWMateAuthStatus: () => promise(status),
+      AppAWMateAuthSignIn: () =>
+        promise(async () => {
+          const account = await signIn(async (url) => {
+            if (!(await Effect.runPromise(openExternalURL(url)))) throw new Error("Could not open the sign-in page")
+          })
+          setTimeout(lifecycle.relaunch, 750)
+          return account
+        }),
+      AppAWMateAuthSignOut: () =>
+        promise(async () => {
+          await signOut()
+          setTimeout(lifecycle.relaunch, 750)
+        }),
       AppReadyDeepLinks: (_request, context) =>
         Effect.sync(() => {
           const contents = sender(handoff, context)

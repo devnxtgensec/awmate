@@ -20,6 +20,9 @@ const toArrayBuffer = (value: Uint8Array) =>
 export const api: ElectronAPI = {
   awaitInitialization: () => invoke("AppAwaitInitialization"),
   reconnectService: (signal) => cancellable("AppReconnectService", undefined, signal),
+  awmateAuthStatus: () => invoke("AppAWMateAuthStatus"),
+  awmateAuthSignIn: () => invoke("AppAWMateAuthSignIn"),
+  awmateAuthSignOut: () => invoke("AppAWMateAuthSignOut"),
   onSidecarChanged: (cb) => listen("SidecarChanged", (event) => cb({ url: event.url })),
   readyDeepLinks: () => send("AppReadyDeepLinks"),
   acknowledgeDeepLinks: (attempt) => send("AppAcknowledgeDeepLinks", { attempt }),

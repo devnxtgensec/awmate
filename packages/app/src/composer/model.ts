@@ -302,6 +302,24 @@ export function createComposerModel(adapter: ComposerAdapter, options?: { queue?
     removeFromHistory: (value, mode, comments) => history.remove(value, mode, mode === "shell" ? [] : comments),
     resetHistory: () => controller.resetHistory(),
     closePopover: () => controller.dispatch({ type: "popover.close" }),
+    // "Modified for AWMate": authenticate desktop users before sending prompts or quote replies.
+    authenticate: async () => {
+      if (!platform.awmateAuthStatus || !platform.awmateAuthSignIn) return true
+      try {
+        if (await platform.awmateAuthStatus()) return true
+        showToast({
+          title: "Sign in to AWMate before sending a query",
+          description: "Complete Google sign-in in the browser, then send your query again.",
+        })
+        await platform.awmateAuthSignIn()
+      } catch (error) {
+        showToast({
+          title: "Could not verify your AWMate account",
+          description: error instanceof Error ? error.message : String(error),
+        })
+      }
+      return false
+    },
     delivery: (alternate) => {
       const queue = options?.queue
 

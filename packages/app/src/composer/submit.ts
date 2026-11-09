@@ -54,6 +54,7 @@ type ComposerSubmitInput = {
   removeFromHistory: (prompt: Prompt, mode: "normal" | "shell", comments: PromptHistoryComment[]) => void
   resetHistory: () => void
   closePopover: () => void
+  authenticate?: () => Promise<boolean>
   delivery?: (alternate: boolean) => ComposerDelivery
   clientCommand?: (text: string) => (() => void | Promise<void>) | undefined
   notify: {
@@ -257,17 +258,19 @@ export function createComposerSubmit(input: ComposerSubmitInput) {
 
   return {
     state,
-    submit(event: globalThis.Event, options?: { alternate?: boolean }) {
+    async submit(event: globalThis.Event, options?: { alternate?: boolean }) {
       event.preventDefault()
+      if (input.authenticate && !(await input.authenticate())) return
 
       return new Promise<void>((resolve) =>
         dispatch({ type: "submit", snapshot: snapshot(input, options?.alternate ?? false), done: () => resolve() }),
       )
     },
-    submitQuote(key: string, comment: string) {
+    async submitQuote(key: string, comment: string) {
       const adapter = input.adapter
 
       if (adapter.kind !== "active-session") return Promise.resolve(false)
+      if (input.authenticate && !(await input.authenticate())) return false
       const quote = adapter.state.context.items().find((item) => item.key === key)
 
       return new Promise<boolean>((resolve) =>

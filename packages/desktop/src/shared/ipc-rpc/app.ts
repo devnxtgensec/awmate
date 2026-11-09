@@ -9,6 +9,16 @@ export const AppAwaitInitialization = Rpc.make("AppAwaitInitialization", { succe
 
 export const AppReconnectService = Rpc.make("AppReconnectService", { success: ServerReadyData })
 
+const AWMateAccount = Schema.Struct({ email: Schema.String, name: Schema.String, gatewayEnabled: Schema.Boolean })
+
+export const AppAWMateAuthStatus = Rpc.make("AppAWMateAuthStatus", {
+  success: Schema.NullOr(AWMateAccount),
+})
+
+export const AppAWMateAuthSignIn = Rpc.make("AppAWMateAuthSignIn", { success: AWMateAccount })
+
+export const AppAWMateAuthSignOut = Rpc.make("AppAWMateAuthSignOut")
+
 // The renderer listens for DeepLinksOpened before it reports ready, and acknowledges each delivery once handled.
 export const AppReadyDeepLinks = Rpc.make("AppReadyDeepLinks")
 
@@ -72,6 +82,9 @@ export const AppRelaunch = Rpc.make("AppRelaunch")
 export const AppRpcs = RpcGroup.make(
   AppAwaitInitialization,
   AppReconnectService,
+  AppAWMateAuthStatus,
+  AppAWMateAuthSignIn,
+  AppAWMateAuthSignOut,
   AppReadyDeepLinks,
   AppAcknowledgeDeepLinks,
   AppIsFirstLaunchOnboardingPending,

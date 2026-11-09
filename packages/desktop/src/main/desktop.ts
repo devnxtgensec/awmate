@@ -10,9 +10,12 @@ import { DesktopLogging } from "./native/logging"
 import { BackgroundService } from "./service/background-service"
 import { DesktopCli } from "./service/desktop-cli"
 import { marks } from "./lifecycle/marks"
+import { prepareGateway } from "./service/awmate-auth"
 
 // Everything above has been loaded and evaluated by now; the layers start below.
 marks.bundle = Date.now()
+
+await prepareGateway()
 
 const runIpc = Effect.fn("Desktop.runIpc")(function* () {
   const lifecycle = yield* ApplicationLifecycle.Service

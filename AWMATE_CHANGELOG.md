@@ -21,7 +21,11 @@ This file records AWMate-specific changes included in pushes so maintainers can 
 
 ### Push record
 
-- Pending platform and AWMate commits/pushes for this entry.
+- AWMate source commit `4aa3a005ae` was pushed to `origin/main`.
+- Platform source commit `98dacb4` is committed locally; GitHub rejected the configured `nxtgensec/awmate-platform` remote with `Repository not found`.
+- The verified platform build was deployed manually to Cloudflare Pages production. Deployment: `https://7fb5b9f8.awmate-platform.pages.dev`.
+- Production smoke checks confirmed desktop login start returns a login URL and expiry, while unauthenticated desktop-session and gateway requests return HTTP 401.
+- The rebuilt Electron app runs locally as version `2.2.5` using an isolated temporary profile. Completing Google consent and a real gateway request still requires the user to sign in with an enabled account.
 
 ## 2026-11-08 — Project sidebar and account menu
 

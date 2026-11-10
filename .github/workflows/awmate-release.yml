@@ -99,11 +99,20 @@ jobs:
           RELEASE_NOTES: ${{ inputs.release_notes }}
           TARGET_SHA: ${{ github.sha }}
         run: |
-          gh release create "$TAG" \
-            release/awmate-desktop-win-x64.exe \
-            release/awmate-desktop-win-x64.zip \
-            release/latest.yml \
-            release/*.blockmap \
-            --title "AWMate $TAG" \
-            --notes "$RELEASE_NOTES" \
-            --target "$TARGET_SHA"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" \
+              release/awmate-desktop-win-x64.exe \
+              release/awmate-desktop-win-x64.zip \
+              release/latest.yml \
+              release/*.blockmap \
+              --clobber
+          else
+            gh release create "$TAG" \
+              release/awmate-desktop-win-x64.exe \
+              release/awmate-desktop-win-x64.zip \
+              release/latest.yml \
+              release/*.blockmap \
+              --title "AWMate $TAG" \
+              --notes "$RELEASE_NOTES" \
+              --target "$TARGET_SHA"
+          fi

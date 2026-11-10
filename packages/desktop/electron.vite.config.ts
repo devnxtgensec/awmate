@@ -119,7 +119,8 @@ export default defineConfig(async ({ command }) => {
       },
       define: {
         "import.meta.env.OPENCODE_VERSION": JSON.stringify(process.env.OPENCODE_VERSION),
-        "import.meta.env.AWMATE_BUILD": JSON.stringify(process.env.AWMATE_BUILD === "1"),
+        // Modified for AWMate: the renderer reads this build flag as the literal string "true".
+        "import.meta.env.AWMATE_BUILD": JSON.stringify(process.env.AWMATE_BUILD === "1" ? "true" : "false"),
         "import.meta.env.VITE_OPENCODE_CHANNEL": JSON.stringify(channel),
         "import.meta.env.OPENCODE_COMMIT": betaNotes ? JSON.stringify(betaNotes.sha) : "undefined",
         "import.meta.env.OPENCODE_BETA_NOTES": betaNotes ? JSON.stringify(JSON.stringify(betaNotes)) : "undefined",

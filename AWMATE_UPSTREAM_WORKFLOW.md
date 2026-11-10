@@ -50,3 +50,12 @@ Do not reset AWMate branches to `upstream/dev` or force-push upstream over AWMat
 - The `dev` branch can contain changes that are not part of a stable OpenCode release. Review upstream changes before promoting them to `main`.
 - Preserve OpenCode's license and attribution notices when redistributing the fork.
 - Keep local credentials out of Git. `.env.local` is excluded by `.gitignore`; never commit it.
+
+## Upstream sync log
+
+### 2026-11-10
+
+- Fetched OpenCode `upstream/dev` at `d4aeee551e` (`fix(site): send every unhandled method a 405 listing what the address takes`). The shared base was `78e066c9d4`; upstream had 183 commits and 1,039 changed paths since that base.
+- Merge simulations into AWMate `dev` and `main` reported no conflicts. Six files were changed on both sides; Git's clean merge retained both sides' edits, including AWMate's desktop protocol and 30-second plugin readiness customization.
+- Installed the merged lockfile with `bun install --frozen-lockfile`. `bun run check` passed: lint reported 550 warnings and 0 errors, SDK documentation reported 0 problems, and typecheck completed all 34 tasks.
+- The sync is staged on `sync/opencode-2026-11-10`; promote it through AWMate `dev`, then merge into `main` after the AWMate desktop build check.

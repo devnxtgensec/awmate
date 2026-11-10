@@ -55,7 +55,8 @@ export default defineConfig(async ({ command }) => {
       define: {
         // Local renderer/server mode still uses the dev application identity and updater policy.
         "import.meta.env.OPENCODE_CHANNEL": JSON.stringify(channel === "local" ? "dev" : channel),
-        "import.meta.env.AWMATE_BUILD": JSON.stringify(process.env.AWMATE_BUILD === "1" ? "true" : "false"),
+        // Modified for AWMate: keep this boolean because the desktop main process checks it as `true`.
+        "import.meta.env.AWMATE_BUILD": JSON.stringify(process.env.AWMATE_BUILD === "1"),
       },
       build: {
         minify: command === "build",

@@ -13,6 +13,7 @@ This file records AWMate-specific changes included in pushes so maintainers can 
 - Modified for AWMate: force AWMate builds to isolate their CLI sidecar from OpenCode processes.
 - Modified for AWMate: use Electron's `app.getAppPath()` for Windows development protocol registration; a local protocol smoke test verified the full path, app focus/continuity, and isolated sidecar startup.
 - Modified for AWMate: require approved Google sign-in before the desktop UI loads; pending or denied users receive the support message requested by the product owner.
+- Modified for AWMate: inject `AWMATE_BUILD` as a boolean consistently in Electron main and renderer bundles. The previous renderer compared the boolean to the string `"true"`, so it skipped the required login gate; the isolated local rerun now visibly opens on the Google approval screen.
 - Modified for AWMate: add separate admin approval/revocation and last-login visibility. Disapproval revokes desktop sessions and is checked by the desktop session and gateway APIs.
 - Modified for AWMate: configure the Electron updater to use AWMate GitHub Releases and add a manual Windows release workflow for the installer, download ZIP, and `latest.yml` metadata.
 - Modified for AWMate: extend the server's cold-location plugin readiness wait from 5 to 30 seconds. The local startup report showed plugin activation was still running when the 5-second deadline returned a fatal 503 to the renderer.
@@ -22,6 +23,7 @@ This file records AWMate-specific changes included in pushes so maintainers can 
 
 - Desktop/app typechecks passed and the AWMate desktop production build passed.
 - Local dev rerun starts the isolated CLI service successfully after clearing a stale AWMate test sidecar from port 3084; no fatal renderer error was recorded after the 30-second readiness change.
+- Local Electron rerun visibly confirmed “Sign in to AWMate” and “An administrator must approve your account.”
 - A live Google consent and gateway response remain to be verified with an enabled account.
 
 ### Push and deployment record

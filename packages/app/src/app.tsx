@@ -131,7 +131,8 @@ export function AppInterface(props: {
 function AWMateAccessGate(props: ParentProps) {
   const platform = usePlatform()
   const language = useLanguage()
-  const required = import.meta.env.AWMATE_BUILD === "true"
+  // Modified for AWMate: the build config injects a boolean, not a string.
+  const required = import.meta.env.AWMATE_BUILD === true
   const [state, setState] = createStore({ phase: required ? "checking" : "approved", busy: false, message: "" })
   let attempt = 0
 

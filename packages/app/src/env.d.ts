@@ -1,5 +1,6 @@
 interface ImportMetaEnv {
-  readonly AWMATE_BUILD?: string
+  // Modified for AWMate: Electron injects the AWMate build flag as a boolean.
+  readonly AWMATE_BUILD?: boolean
   readonly VITE_OPENCODE_SERVER_MODE?: "none" | "origin"
   readonly VITE_OPENCODE_SERVER_HOST: string
   readonly VITE_OPENCODE_SERVER_PORT: string

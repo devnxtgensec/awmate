@@ -17,6 +17,12 @@ This file records AWMate-specific changes included in pushes so maintainers can 
 - Desktop/app typechecks passed and the AWMate desktop production build passed.
 - A live Google consent and gateway response remain to be verified with an enabled account.
 
+### Push and deployment record
+
+- AWMate commit `098f194839` was pushed to `origin/main`.
+- Platform source commit `5c249bc` is committed locally; the configured GitHub remote returned `Repository not found` on push.
+- The platform build was manually deployed to Cloudflare Pages at `https://26b03cc2.awmate-platform.pages.dev`.
+
 ## 2026-11-09 — Desktop Google sign-in and gateway access
 
 ### Changes

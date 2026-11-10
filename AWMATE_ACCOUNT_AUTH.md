@@ -75,3 +75,5 @@
 - Removed the auth flow's Electron relaunch. After session changes, only the isolated AWMate CLI sidecar restarts and reloads the authenticated gateway configuration.
 - AWMate builds always use an isolated sidecar, preventing AWMate's account-specific gateway environment from being reused by OpenCode.
 - Desktop/app typechecks and the AWMate desktop production build passed. A live Google login and successful gateway request still need to be verified with a gateway-enabled account.
+- AWMate commit `098f194839` (`fix(desktop): return OAuth sign-in to AWMate`) was pushed to `origin/main`.
+- Platform commit `5c249bc` (`fix(auth): return desktop login to AWMate`) is saved locally. Its build was deployed to Cloudflare Pages at `https://26b03cc2.awmate-platform.pages.dev`; pushing the source commit failed because the configured GitHub remote returned `Repository not found`.

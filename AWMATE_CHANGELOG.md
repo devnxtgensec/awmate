@@ -8,8 +8,10 @@ This file records AWMate-specific changes included in pushes so maintainers can 
 
 - Modified for AWMate: route completed desktop Google OAuth back to the running app with the dedicated `awmate://auth/complete` protocol; normal website sign-in still returns to `/account`.
 - Modified for AWMate: register the Windows development protocol with the Electron entry script, fixing path truncation when launching from a directory containing spaces.
+- Modified for AWMate: source the Windows development protocol argument from `app.getAppPath()` so the full project path is registered even when launched through Bun from a path containing spaces.
 - Modified for AWMate: keep Electron running after sign-in/sign-out and restart only the isolated AWMate CLI sidecar so it reloads the account's gateway configuration.
 - Modified for AWMate: force AWMate builds to isolate their CLI sidecar from OpenCode processes.
+- Modified for AWMate: use Electron's `app.getAppPath()` for Windows development protocol registration; a local protocol smoke test verified the full path, app focus/continuity, and isolated sidecar startup.
 - Updated `AWMATE_ACCOUNT_AUTH.md` with the callback, protocol registration, sidecar behavior, and verification notes.
 
 ### Verification

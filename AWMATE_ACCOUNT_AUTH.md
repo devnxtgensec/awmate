@@ -63,7 +63,7 @@
 ### Still requires an interactive account test
 
 - Complete Google consent from the running Electron app with an account whose gateway access is enabled.
-- Confirm the app restarts after approval, displays the signed-in account and gateway state, lists the account's allowed models, and successfully returns a streamed LiteLLM response.
+- Confirm the browser return focuses the running app, the sidecar restarts after approval, the account state and allowed models appear, and a LiteLLM response streams successfully.
 - Check sign-out/revocation, expired device login, and denial after gateway access is disabled.
 - During the latest browser inspection, the currently signed-in AWMate account showed gateway access as “Not enabled”; provision gateway access for the intended test account before expecting the AWMate model or a successful gateway response.
 - No distributable `.exe` was built in this task. The running local Electron app is the development build; producing a release installer is a separate packaging step after the interactive flow is verified.
@@ -71,9 +71,10 @@
 ### 2026-11-10 — Desktop OAuth return and Windows launch fix
 
 - Fixed the post-Google desktop return: the OAuth callback opens `awmate://auth/complete`, which focuses the existing Electron app while its device-login poll completes.
-- Fixed Windows development protocol registration to include the Electron entry script. This avoids the reported `Unable to find Electron app at C:\Users\Savir` / `Cannot find module 'C:\Users\Savir'` error when the project path contains spaces.
+- Fixed Windows development protocol registration to use Electron's resolved application path. This avoids the reported `Unable to find Electron app at C:\Users\Savir` / `Cannot find module 'C:\Users\Savir'` error when the project path contains spaces.
 - Removed the auth flow's Electron relaunch. After session changes, only the isolated AWMate CLI sidecar restarts and reloads the authenticated gateway configuration.
 - AWMate builds always use an isolated sidecar, preventing AWMate's account-specific gateway environment from being reused by OpenCode.
 - Desktop/app typechecks and the AWMate desktop production build passed. A live Google login and successful gateway request still need to be verified with a gateway-enabled account.
+- Windows local smoke check passed: the `awmate` protocol registration points to the full `packages/desktop` app path, opening `awmate://auth/complete` leaves the running Electron app active, and its isolated CLI sidecar listens on port 3084.
 - AWMate commit `098f194839` (`fix(desktop): return OAuth sign-in to AWMate`) was pushed to `origin/main`.
 - Platform commit `5c249bc` (`fix(auth): return desktop login to AWMate`) is saved locally. Its build was deployed to Cloudflare Pages at `https://26b03cc2.awmate-platform.pages.dev`; pushing the source commit failed because the configured GitHub remote returned `Repository not found`.

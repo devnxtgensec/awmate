@@ -45,7 +45,7 @@ export const prepareDesktop = Effect.gen(function* () {
 
   if (app.isPackaged || process.env.OPENCODE_DESKTOP_DISABLE_PROTOCOL_REGISTRATION !== "1") {
     const scheme = import.meta.env.AWMATE_BUILD === true ? "awmate" : "opencode"
-    const args = process.platform === "win32" && process.defaultApp && process.argv[1] ? [path.resolve(process.argv[1])] : []
+    const args = process.platform === "win32" && process.defaultApp ? [app.getAppPath()] : []
     app.setAsDefaultProtocolClient(scheme, process.execPath, args)
   }
   const runFork = Effect.runForkWith(yield* Effect.context())

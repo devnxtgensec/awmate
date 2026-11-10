@@ -22,6 +22,7 @@ This file records AWMate-specific changes included in pushes so maintainers can 
 ### Push and deployment record
 
 - AWMate commit `098f194839` was pushed to `origin/main`.
+- Follow-up AWMate commit `5c35da3363` (with documentation commit `027d355e16`) was pushed to `origin/main`; it corrects and smoke-checks the Windows app path registered for the custom protocol.
 - Platform source commit `5c249bc` is committed locally; the configured GitHub remote returned `Repository not found` on push.
 - The platform build was manually deployed to Cloudflare Pages at `https://26b03cc2.awmate-platform.pages.dev`.
 

@@ -77,4 +77,5 @@
 - Desktop/app typechecks and the AWMate desktop production build passed. A live Google login and successful gateway request still need to be verified with a gateway-enabled account.
 - Windows local smoke check passed: the `awmate` protocol registration points to the full `packages/desktop` app path, opening `awmate://auth/complete` leaves the running Electron app active, and its isolated CLI sidecar listens on port 3084.
 - AWMate commit `098f194839` (`fix(desktop): return OAuth sign-in to AWMate`) was pushed to `origin/main`.
+- Follow-up AWMate commit `5c35da3363` (`fix(desktop): register full Windows app path`) was also pushed to `origin/main`; documentation update `027d355e16` is included in the branch history.
 - Platform commit `5c249bc` (`fix(auth): return desktop login to AWMate`) is saved locally. Its build was deployed to Cloudflare Pages at `https://26b03cc2.awmate-platform.pages.dev`; pushing the source commit failed because the configured GitHub remote returned `Repository not found`.

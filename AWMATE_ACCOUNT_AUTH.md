@@ -42,6 +42,14 @@
 - `functions/api/gateway/[[path]].ts` proxies authenticated OpenAI-compatible requests to LiteLLM, checking the desktop session and the account's current gateway provisioning/enabled state on each request. The platform decrypts that account's LiteLLM key server-side; it does not send the gateway master key to Electron.
 - `DESKTOP_AUTH.md` documents the platform-side protocol and security model.
 
+## Desktop app access approval
+
+- `migrations/0003_desktop_access_approval.sql` separates desktop approval from LiteLLM gateway access and records the last Google sign-in.
+- `functions/api/admin/accounts/[id]/access.ts` lets the configured administrator approve or disapprove desktop access. Disapproval removes active desktop sessions; desktop-session and gateway APIs reject accounts that are not approved.
+- AWMate desktop builds show Google sign-in before loading the application. Pending and denied users see: “Your account is not yet approved. Contact support@nxtgensec.org for further details.”
+- The configured administrator account is approved automatically so it can administer users. Desktop approval remains separate from gateway enablement, budgets, RPM/TPM, and model assignment.
+- Desktop access is checked at startup and every 30 seconds while the app is open. The gateway proxy checks approval on every request.
+
 ## Verification and rollout record
 
 ### Completed
@@ -76,6 +84,12 @@
 - AWMate builds always use an isolated sidecar, preventing AWMate's account-specific gateway environment from being reused by OpenCode.
 - Desktop/app typechecks and the AWMate desktop production build passed. A live Google login and successful gateway request still need to be verified with a gateway-enabled account.
 - Windows local smoke check passed: the `awmate` protocol registration points to the full `packages/desktop` app path, opening `awmate://auth/complete` leaves the running Electron app active, and its isolated CLI sidecar listens on port 3084.
+
+### Windows release path
+
+- AWMate packages use the AWMate GitHub Releases feed for in-app updates rather than the website's HTML fallback route.
+- `.github/workflows/awmate-release.yml` is manually run from `main` with a release tag and increasing desktop app version. It builds the installer and ZIP, then publishes `latest.yml` and installer assets.
+- The website's `/download` endpoint already redirects to the latest release ZIP, so it follows each published release without a separate website change.
 - AWMate commit `098f194839` (`fix(desktop): return OAuth sign-in to AWMate`) was pushed to `origin/main`.
 - Follow-up AWMate commit `5c35da3363` (`fix(desktop): register full Windows app path`) was also pushed to `origin/main`; documentation update `027d355e16` is included in the branch history.
 - Platform commit `5c249bc` (`fix(auth): return desktop login to AWMate`) is saved locally. Its build was deployed to Cloudflare Pages at `https://26b03cc2.awmate-platform.pages.dev`; pushing the source commit failed because the configured GitHub remote returned `Repository not found`.

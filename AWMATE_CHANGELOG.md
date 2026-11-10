@@ -12,6 +12,9 @@ This file records AWMate-specific changes included in pushes so maintainers can 
 - Modified for AWMate: keep Electron running after sign-in/sign-out and restart only the isolated AWMate CLI sidecar so it reloads the account's gateway configuration.
 - Modified for AWMate: force AWMate builds to isolate their CLI sidecar from OpenCode processes.
 - Modified for AWMate: use Electron's `app.getAppPath()` for Windows development protocol registration; a local protocol smoke test verified the full path, app focus/continuity, and isolated sidecar startup.
+- Modified for AWMate: require approved Google sign-in before the desktop UI loads; pending or denied users receive the support message requested by the product owner.
+- Modified for AWMate: add separate admin approval/revocation and last-login visibility. Disapproval revokes desktop sessions and is checked by the desktop session and gateway APIs.
+- Modified for AWMate: configure the Electron updater to use AWMate GitHub Releases and add a manual Windows release workflow for the installer, download ZIP, and `latest.yml` metadata.
 - Updated `AWMATE_ACCOUNT_AUTH.md` with the callback, protocol registration, sidecar behavior, and verification notes.
 
 ### Verification

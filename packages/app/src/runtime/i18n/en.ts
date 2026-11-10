@@ -1,6 +1,15 @@
 import { DESKTOP_NATIVE_ENGLISH } from "./desktop-native"
 
 export const dict = {
+  "awmate.auth.title": "Sign in to AWMate",
+  "awmate.auth.body": "Sign in with Google to access the desktop app. An administrator must approve your account.",
+  "awmate.auth.continue": "Continue with Google",
+  "awmate.auth.waiting": "Waiting for Google sign-in…",
+  "awmate.auth.checking": "Checking your account access…",
+  "awmate.auth.notApproved": "Your account is not yet approved. Contact support@nxtgensec.org for further details.",
+  "awmate.auth.retry": "Try again",
+  "awmate.auth.support": "Contact support",
+  "awmate.auth.unavailable": "Could not check your AWMate account. Check your connection and try again.",
   "experiment.voiceCalls": "Voice calls",
   "voice.call": "Call",
   "voice.mute": "Mute",

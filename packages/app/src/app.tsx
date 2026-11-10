@@ -8,7 +8,8 @@ import { ThemeProvider } from "@opencode/ui/theme/context"
 import { MetaProvider, Title } from "@solidjs/meta"
 import { type BaseRouterProps, Router } from "@solidjs/router"
 import { QueryClient, QueryClientProvider } from "@tanstack/solid-query"
-import { type Component, createRenderEffect, ErrorBoundary, type JSX, type ParentProps } from "solid-js"
+import { type Component, createRenderEffect, ErrorBoundary, type JSX, type ParentProps, Show, onCleanup, onMount } from "solid-js"
+import { createStore } from "solid-js/store"
 import { Dynamic } from "solid-js/web"
 import { CommandProvider } from "@/shell/commands/command"
 import { DesktopCommands } from "@/shell/commands/desktop"
@@ -21,6 +22,9 @@ import { TabsProvider } from "@/shell/tabs/tabs"
 import { ErrorPage } from "@/shell/errors/error"
 import { AppRoutes, File, preloadRoute } from "@/shell/routes/routes"
 import { PluginRoot } from "@/runtime/plugin/root"
+import { usePlatform } from "@/runtime/platform/platform"
+import { useLanguage } from "@/runtime/i18n/language"
+import { Button } from "@opencode/ui/button"
 
 export { preloadRoute }
 
@@ -112,12 +116,99 @@ export function AppInterface(props: {
   )
 
   return (
-    <ServersProvider canonicalLocalServer={props.canonicalLocalServer} servers={props.servers}>
-      <SettingsProvider>
-        <Dynamic component={props.router ?? Router} root={Root}>
-          <AppRoutes />
-        </Dynamic>
-      </SettingsProvider>
-    </ServersProvider>
+    <AWMateAccessGate>
+      <ServersProvider canonicalLocalServer={props.canonicalLocalServer} servers={props.servers}>
+        <SettingsProvider>
+          <Dynamic component={props.router ?? Router} root={Root}>
+            <AppRoutes />
+          </Dynamic>
+        </SettingsProvider>
+      </ServersProvider>
+    </AWMateAccessGate>
+  )
+}
+
+function AWMateAccessGate(props: ParentProps) {
+  const platform = usePlatform()
+  const language = useLanguage()
+  const required = import.meta.env.AWMATE_BUILD === "true"
+  const [state, setState] = createStore({ phase: required ? "checking" : "approved", busy: false, message: "" })
+  let attempt = 0
+
+  const check = async () => {
+    if (!required || state.busy) return
+    const current = ++attempt
+    setState({ phase: "checking", message: "" })
+    try {
+      const account = await platform.awmateAuthStatus?.()
+      if (current !== attempt) return
+      setState({ phase: account ? "approved" : "signed-out", message: "" })
+    } catch (error) {
+      if (current !== attempt) return
+      setState({ phase: "signed-out", message: error instanceof Error ? error.message : language.t("awmate.auth.unavailable") })
+    }
+  }
+
+  const signIn = async () => {
+    if (!required || state.busy) return
+    const current = ++attempt
+    setState({ phase: "signing-in", busy: true, message: "" })
+    try {
+      if (!platform.awmateAuthSignIn) throw new Error(language.t("awmate.auth.unavailable"))
+      await platform.awmateAuthSignIn()
+      if (!(await platform.awmateAuthStatus?.())) throw new Error(language.t("awmate.auth.notApproved"))
+      if (current === attempt) setState({ phase: "approved", busy: false, message: "" })
+    } catch (error) {
+      if (current === attempt)
+        setState({
+          phase: "signed-out",
+          busy: false,
+          message: error instanceof Error ? error.message : language.t("awmate.auth.unavailable"),
+        })
+    }
+  }
+
+  onMount(() => {
+    if (!required) return
+    void check()
+    const timer = window.setInterval(() => void check(), 30_000)
+    onCleanup(() => {
+      attempt++
+      window.clearInterval(timer)
+    })
+  })
+
+  return (
+    <Show
+      when={!required || state.phase === "approved"}
+      fallback={
+        <main class="flex min-h-screen items-center justify-center bg-v2-background-bg-base px-6 text-v2-text-text-base">
+          <section class="w-full max-w-md rounded-2xl border border-v2-border-border-muted bg-v2-background-bg-layer-01 p-8 shadow-xl">
+            <p class="mb-2 text-12-medium uppercase tracking-wider text-v2-text-text-muted">AWMate</p>
+            <h1 class="mb-3 text-24-semibold">{language.t("awmate.auth.title")}</h1>
+            <p class="mb-6 text-14-regular text-v2-text-text-muted">{language.t("awmate.auth.body")}</p>
+            <Show when={state.phase === "checking"}>
+              <p class="mb-4 text-13-regular text-v2-text-text-muted" role="status">{language.t("awmate.auth.checking")}</p>
+            </Show>
+            <Show when={state.message}>
+              <p class="mb-4 text-13-regular text-v2-text-text-danger" role="alert">{state.message}</p>
+            </Show>
+            <Button
+              class="mb-4 w-full"
+              variant="submit"
+              disabled={state.busy || state.phase === "checking"}
+              onClick={() => void signIn()}
+            >
+              {state.busy ? language.t("awmate.auth.waiting") : language.t("awmate.auth.continue")}
+            </Button>
+            <a class="text-13-regular text-v2-text-text-muted underline" href="mailto:support@nxtgensec.org">
+              {language.t("awmate.auth.support")}
+            </a>
+          </section>
+        </main>
+      }
+    >
+      {props.children}
+    </Show>
   )
 }

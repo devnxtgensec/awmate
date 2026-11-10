@@ -1,0 +1,109 @@
+name: AWMate Windows release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: GitHub release tag, such as v0.1.5
+        required: true
+        type: string
+      app_version:
+        description: Increasing Electron app version, such as 2.2.6
+        required: true
+        type: string
+      release_notes:
+        description: Notes shown on the GitHub release
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    if: github.ref == 'refs/heads/main'
+    runs-on: windows-2025
+    steps:
+      - name: Check out AWMate main
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun and dependencies
+        uses: ./.github/actions/setup-bun
+
+      - name: Build AWMate desktop
+        working-directory: packages/desktop
+        shell: pwsh
+        env:
+          AWMATE_BUILD: "1"
+          OPENCODE_CHANNEL: dev
+          OPENCODE_TARGET: windows-x64
+          OPENCODE_VERSION: ${{ inputs.app_version }}
+        run: bun run build
+
+      - name: Build installer and update metadata
+        working-directory: packages/desktop
+        shell: pwsh
+        env:
+          AWMATE_BUILD: "1"
+          OPENCODE_CHANNEL: dev
+          OPENCODE_TARGET: windows-x64
+          OPENCODE_VERSION: ${{ inputs.app_version }}
+        run: |
+          bun run pack
+          $unpacked = Join-Path $env:RUNNER_TEMP 'awmate-unpacked'
+          Copy-Item -LiteralPath '..\..\dist\desktop\app' -Destination $unpacked -Recurse -Force
+          $env:OPENCODE_DESKTOP_APP = $unpacked
+          bun run pack
+
+          $packageDist = Join-Path (Get-Location) 'dist'
+          $installer = Join-Path $packageDist 'awmate-desktop-win-x64.exe'
+          $metadata = Join-Path $packageDist 'latest.yml'
+          if (!(Test-Path -LiteralPath $installer)) { throw 'AWMate Windows installer was not created.' }
+          if (!(Test-Path -LiteralPath $metadata)) { throw 'electron-builder did not create latest.yml.' }
+
+          $release = Join-Path $env:RUNNER_TEMP 'awmate-release'
+          New-Item -ItemType Directory -Path $release -Force | Out-Null
+          Copy-Item -LiteralPath $installer -Destination $release
+          Copy-Item -LiteralPath $metadata -Destination $release
+          $blockmap = "$installer.blockmap"
+          if (Test-Path -LiteralPath $blockmap) { Copy-Item -LiteralPath $blockmap -Destination $release }
+          Compress-Archive -LiteralPath (Join-Path $release 'awmate-desktop-win-x64.exe') -DestinationPath (Join-Path $release 'awmate-desktop-win-x64.zip') -CompressionLevel Optimal
+
+      - name: Upload release files
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: awmate-windows-release
+          path: ${{ runner.temp }}/awmate-release/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: build-windows
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified build artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: awmate-windows-release
+          path: release
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+          TARGET_SHA: ${{ github.sha }}
+        run: |
+          gh release create "$TAG" \
+            release/awmate-desktop-win-x64.exe \
+            release/awmate-desktop-win-x64.zip \
+            release/latest.yml \
+            release/*.blockmap \
+            --title "AWMate $TAG" \
+            --notes "$RELEASE_NOTES" \
+            --target "$TARGET_SHA"

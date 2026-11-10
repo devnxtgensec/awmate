@@ -36,7 +36,8 @@ if (app) {
   // The installer uses the channel's icons; the rest of the app is already built and signed.
   await $`bun ./script/copy-icons.ts ${resolveChannel()}`
   await $`bunx electron-builder ${flags} --prepackaged ${app}`
-  await cp(`dist/opencode-desktop-win-${cli.cpu}.exe`, path.join(out, `opencode-desktop-win-${cli.cpu}.exe`))
+  const prefix = process.env.AWMATE_BUILD === "1" ? "awmate" : "opencode"
+  await cp(`dist/${prefix}-desktop-win-${cli.cpu}.exe`, path.join(out, `${prefix}-desktop-win-${cli.cpu}.exe`))
 }
 
 if (!app && os === "linux") {
@@ -71,8 +72,9 @@ async function writeUpdateConfig(resources: string) {
     path.join(resources, "app-update.yml"),
     [
       `provider: ${publish.provider}`,
-      `url: ${publish.url}`,
-      `channel: ${publish.channel}`,
+      ...(publish.provider === "github"
+        ? [`owner: ${publish.owner}`, `repo: ${publish.repo}`, `releaseType: ${publish.releaseType ?? "release"}`]
+        : [`url: ${publish.url}`, `channel: ${publish.channel}`]),
       `updaterCacheDirName: '${name.replace(/[/\\:*?"<>|]/g, "").toLowerCase()}-updater'`,
     ].join("\n") + "\n",
   )

@@ -64,7 +64,10 @@ const getBase = (appId: string): Configuration => {
   const desktopName = `${appId}.desktop`
 
   return {
-    artifactName: "opencode-desktop-${os}-${arch}.${ext}",
+    artifactName:
+      process.env.AWMATE_BUILD === "1"
+        ? "awmate-desktop-${os}-${arch}.${ext}"
+        : "opencode-desktop-${os}-${arch}.${ext}",
     directories: {
       output: "dist",
       buildResources: "resources",
@@ -222,15 +225,19 @@ export function getConfig() {
         productName: process.env.AWMATE_BUILD === "1" ? "AWMate" : "OpenCode Dev",
         protocols:
           process.env.AWMATE_BUILD === "1" ? { name: "AWMate", schemes: ["awmate"] } : base.protocols,
-        publish: {
-          provider: "generic",
-          // "Modified for AWMate": AWMate builds must never auto-update to an upstream OpenCode build.
-          url:
-            process.env.AWMATE_BUILD === "1"
-              ? "https://awmate.nxtgensec.org/updates/desktop/"
-              : "https://opencode.ai/update/api/dev/desktop/opencode/",
-          channel: "latest",
-        },
+        publish:
+          process.env.AWMATE_BUILD === "1"
+            ? {
+                provider: "github",
+                owner: "devnxtgensec",
+                repo: "awmate",
+                releaseType: "release",
+              }
+            : {
+                provider: "generic",
+                url: "https://opencode.ai/update/api/dev/desktop/opencode/",
+                channel: "latest",
+              },
         deb: { fpm: [...previewCompressionFpm("deb"), metainfoFpm(appId)] },
         rpm: {
           packageName: "opencode-dev",

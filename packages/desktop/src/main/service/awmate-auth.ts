@@ -35,6 +35,11 @@ export async function status() {
     await rm(tokenPath(), { force: true })
     return null
   }
+  if (response.status === 403) {
+    await rm(tokenPath(), { force: true })
+    const result = (await response.json().catch(() => undefined)) as { error?: string } | undefined
+    throw new Error(result?.error ?? "AWMate desktop access is not approved.")
+  }
   if (!response.ok) throw new Error("Could not check the AWMate account")
   const result = (await response.json()) as { account: Account }
   return result.account
@@ -89,7 +94,10 @@ export async function signIn(openExternal: (url: string) => Promise<unknown>) {
       signal: AbortSignal.timeout(10_000),
     })
     if (response.status === 202) continue
-    if (!response.ok) throw new Error("AWMate sign-in expired or was already used")
+    if (!response.ok) {
+      const error = (await response.json().catch(() => undefined)) as { error?: string } | undefined
+      throw new Error(error?.error ?? "AWMate sign-in expired or was already used")
+    }
     const result = (await response.json()) as { accessToken: string; account: Account }
     await writeFile(tokenPath(), safeStorage.encryptString(result.accessToken), { mode: 0o600 })
     return result.account

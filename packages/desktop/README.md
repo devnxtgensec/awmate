@@ -34,9 +34,9 @@ downloads the published dev CLI, `beta` downloads the beta CLI, and `prod`/`late
 ### AWMate Windows installer
 
 Set `AWMATE_BUILD=1` while packaging the Windows x64 `dev` channel to name the installer AWMate and keep its app ID
-separate from the installed OpenCode app. The AWMate build also uses its own updater URL so it cannot install an upstream
-OpenCode build over the customized app. Until that feed is published, distribute updated installers through the AWMate
-website's `/download` route.
+separate from the installed OpenCode app. AWMate packages use the `devnxtgensec/awmate` GitHub Releases feed so they
+cannot install an upstream OpenCode build. Publish the installer, `latest.yml`, and blockmap with the manual
+`.github/workflows/awmate-release.yml` workflow; the AWMate website's `/download` route points to the latest ZIP.
 
 Keep `OPENCODE_VERSION` set to the version in the repository's root `package.json` (currently `2.2.5`), even when the
 AWMate release tag uses a separate version such as `0.1.4`. The bundled CLI advertises `OPENCODE_VERSION` to the OpenCode

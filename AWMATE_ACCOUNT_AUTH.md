@@ -48,7 +48,7 @@
 - Cloudflare D1 migration `0002_desktop_auth.sql` was applied to the production database before the new API was deployed.
 - The platform build was deployed manually to Cloudflare Pages production. Deployment URL: `https://7fb5b9f8.awmate-platform.pages.dev`; the account site remains `https://awmate.nxtgensec.org`.
 - Production smoke checks passed: `POST /api/auth/desktop/start` returned a login URL, expiry, and poll interval; unauthenticated `GET /api/auth/desktop/session` and `GET /api/gateway/v1/models` returned HTTP 401.
-- The Electron app was launched from `packages/desktop` with `bunx electron .` as version `2.2.5`, using `OPENCODE_TEST_ONBOARDING=1` and `OPENCODE_DESKTOP_ISOLATED_SERVER=0`. Its temporary profile is under `%TEMP%\opencode-onboarding-4d2380df-c4d2-4dac-b0ed-dfeedd4c86e5`; the app and sidecar started successfully and were left open for manual testing.
+- The Electron app was launched from `packages/desktop` as version `2.2.5` with `OPENCODE_TEST_ONBOARDING=1` and `OPENCODE_DESKTOP_ISOLATED_SERVER=1`. Since this checkout did not have the ignored `resources/opencode-cli-dev.exe`, an ignored local copy of `resources/opencode-cli.exe` was made at that expected name for isolated testing; no tracked source or existing executable was overwritten. The isolated sidecar started on `127.0.0.1:3084`, and the UI accessibility tree showed the AWMate Account row with “Sign in to AWMate.” Its temporary profile was `%TEMP%\opencode-onboarding-ddf95163-9004-4bb7-9971-f67b8472f6b2`. The window is not running now.
 
 ### Publication record
 
@@ -61,4 +61,5 @@
 - Complete Google consent from the running Electron app with an account whose gateway access is enabled.
 - Confirm the app restarts after approval, displays the signed-in account and gateway state, lists the account's allowed models, and successfully returns a streamed LiteLLM response.
 - Check sign-out/revocation, expired device login, and denial after gateway access is disabled.
+- During the latest browser inspection, the currently signed-in AWMate account showed gateway access as “Not enabled”; provision gateway access for the intended test account before expecting the AWMate model or a successful gateway response.
 - No distributable `.exe` was built in this task. The running local Electron app is the development build; producing a release installer is a separate packaging step after the interactive flow is verified.

@@ -30,6 +30,7 @@ This file records AWMate-specific changes included in pushes so maintainers can 
 - Follow-up AWMate commit `5c35da3363` (with documentation commit `027d355e16`) was pushed to `origin/main`; it corrects and smoke-checks the Windows app path registered for the custom protocol.
 - Platform source commit `5c249bc` is committed locally; the configured GitHub remote returned `Repository not found` on push.
 - The platform build was manually deployed to Cloudflare Pages at `https://26b03cc2.awmate-platform.pages.dev`.
+- AWMate cold-start fix commit `5519b74ac7` was pushed to `main` after all 32 typecheck tasks passed and lint completed with warnings but no errors. GitHub Release `v0.1.6` (app version `2.2.7`) contains the fixed Windows installer and ZIP; `/download` points to the latest release.
 
 ## 2026-11-09 — Desktop Google sign-in and gateway access
 

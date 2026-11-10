@@ -93,3 +93,12 @@
 - AWMate commit `098f194839` (`fix(desktop): return OAuth sign-in to AWMate`) was pushed to `origin/main`.
 - Follow-up AWMate commit `5c35da3363` (`fix(desktop): register full Windows app path`) was also pushed to `origin/main`; documentation update `027d355e16` is included in the branch history.
 - Platform commit `5c249bc` (`fix(auth): return desktop login to AWMate`) is saved locally. Its build was deployed to Cloudflare Pages at `https://26b03cc2.awmate-platform.pages.dev`; pushing the source commit failed because the configured GitHub remote returned `Repository not found`.
+
+## Approval gate and current rollout (2026-11-10)
+
+- AWMate commit `a3b1a9744a` adds the startup approval gate and Windows release workflow; commit `2760491cb0` makes release publishing update assets when the tag already exists. Both are pushed to `devnxtgensec/awmate` `main`.
+- The AWMate renderer blocks access until a Google-authenticated desktop account is approved. It checks status at startup and every 30 seconds. The platform session endpoint and gateway proxy independently reject pending or denied accounts. The pending screen shows: “Your account is not yet approved. Contact support@nxtgensec.org for further details.”
+- Platform commit `8954d1e` adds approval state, last-login display, and separate approve/disapprove controls in the admin account list. It is committed locally. The authenticated GitHub API returned 404 for both `nxtgensec/awmate-platform` and `devnxtgensec/awmate-platform`, so this source commit could not be pushed. The build was deployed manually to Cloudflare Pages production at `https://86954e92.awmate-platform.pages.dev`; `awmate.nxtgensec.org` serves the platform.
+- Production smoke checks returned HTTP 200 for `/account`, 302 for Google sign-in start, and the expected unauthenticated 401 for `/api/account` and `/api/admin/accounts`. Migration `0003_desktop_access_approval.sql` was applied to production D1.
+- GitHub Release `v0.1.5` targets AWMate commit `a3b1a9744a` and contains the Windows installer, ZIP, blockmap, and updater metadata. `latest.yml` reports app version `2.2.6`. The public `/download` route was verified to redirect to the latest release ZIP.
+- Builds are not created on every source push. A maintainer manually dispatches `.github/workflows/awmate-release.yml` with a release tag and app version. Once published, `/download` serves the latest ZIP and the installed app is configured to check GitHub Releases for updates. Automatic in-app update behavior still needs a real installed-app update test.

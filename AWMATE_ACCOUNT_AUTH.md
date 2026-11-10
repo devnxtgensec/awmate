@@ -102,3 +102,9 @@
 - Production smoke checks returned HTTP 200 for `/account`, 302 for Google sign-in start, and the expected unauthenticated 401 for `/api/account` and `/api/admin/accounts`. Migration `0003_desktop_access_approval.sql` was applied to production D1.
 - GitHub Release `v0.1.5` targets AWMate commit `a3b1a9744a` and contains the Windows installer, ZIP, blockmap, and updater metadata. `latest.yml` reports app version `2.2.6`. The public `/download` route was verified to redirect to the latest release ZIP.
 - Builds are not created on every source push. A maintainer manually dispatches `.github/workflows/awmate-release.yml` with a release tag and app version. Once published, `/download` serves the latest ZIP and the installed app is configured to check GitHub Releases for updates. Automatic in-app update behavior still needs a real installed-app update test.
+
+## Local startup error fix (2026-11-10)
+
+- The reported run failed because a stale isolated AWMate CLI sidecar already owned port `3084`. Its process path identified the prior disposable profile under `%TEMP%\opencode-onboarding-614c597d-1383-4fea-a184-b00aed5a0b1a`; it was stopped without touching the user's installed app or data.
+- A clean retry exposed the existing five-second location-plugin activation deadline. `packages/server/src/location.ts` now allows up to 30 seconds for cold startup. The isolated rerun started the CLI service and recorded no fatal renderer error afterward.
+- On this machine, Electron's child process also needs the actual `bun.exe` directory on `PATH`; the available `bun.cmd` shim alone cannot be spawned by Node. This was applied only to the local launch environment.

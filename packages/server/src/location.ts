@@ -35,7 +35,9 @@ export function locationErrors<A, E, R>(effect: Effect.Effect<A, E, R>) {
 
 export const awaitPlugins = Plugin.awaitActivation.pipe(
   Effect.timeoutOrElse({
-    duration: "5 seconds",
+    // "Modified for AWMate": on a cold Windows desktop start, initial plugin registration can
+    // take longer than five seconds while the local CLI and model catalog initialize.
+    duration: "30 seconds",
     orElse: () =>
       Effect.fail(
         new ServiceUnavailableError({

@@ -15,11 +15,13 @@ This file records AWMate-specific changes included in pushes so maintainers can 
 - Modified for AWMate: require approved Google sign-in before the desktop UI loads; pending or denied users receive the support message requested by the product owner.
 - Modified for AWMate: add separate admin approval/revocation and last-login visibility. Disapproval revokes desktop sessions and is checked by the desktop session and gateway APIs.
 - Modified for AWMate: configure the Electron updater to use AWMate GitHub Releases and add a manual Windows release workflow for the installer, download ZIP, and `latest.yml` metadata.
+- Modified for AWMate: extend the server's cold-location plugin readiness wait from 5 to 30 seconds. The local startup report showed plugin activation was still running when the 5-second deadline returned a fatal 503 to the renderer.
 - Updated `AWMATE_ACCOUNT_AUTH.md` with the callback, protocol registration, sidecar behavior, and verification notes.
 
 ### Verification
 
 - Desktop/app typechecks passed and the AWMate desktop production build passed.
+- Local dev rerun starts the isolated CLI service successfully after clearing a stale AWMate test sidecar from port 3084; no fatal renderer error was recorded after the 30-second readiness change.
 - A live Google consent and gateway response remain to be verified with an enabled account.
 
 ### Push and deployment record

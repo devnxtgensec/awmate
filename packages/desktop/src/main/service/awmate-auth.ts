@@ -7,6 +7,14 @@ const tokenPath = () => path.join(app.getPath("userData"), "awmate-account.bin")
 
 export type Account = { email: string; name: string; gatewayEnabled: boolean; models: string[] }
 
+export function clearGateway() {
+  if (process.env.AWMATE_DESKTOP_GATEWAY_CONFIG !== "1") return false
+  delete process.env.OPENCODE_CONFIG_CONTENT
+  delete process.env.AWMATE_GATEWAY_SESSION
+  delete process.env.AWMATE_DESKTOP_GATEWAY_CONFIG
+  return true
+}
+
 async function token() {
   if (!safeStorage.isEncryptionAvailable()) throw new Error("OS secure storage is unavailable")
   try {
@@ -33,20 +41,16 @@ export async function status() {
 }
 
 export async function prepareGateway() {
-  if (process.env.AWMATE_DESKTOP_GATEWAY_CONFIG === "1") {
-    delete process.env.OPENCODE_CONFIG_CONTENT
-    delete process.env.AWMATE_GATEWAY_SESSION
-    delete process.env.AWMATE_DESKTOP_GATEWAY_CONFIG
-  }
+  const previous = clearGateway()
   const current = await token()
-  if (!current || process.env.OPENCODE_CONFIG_CONTENT) return
+  if (!current || process.env.OPENCODE_CONFIG_CONTENT) return previous
   const response = await fetch(`${platformURL}/api/auth/desktop/session`, {
     headers: { Authorization: `Bearer ${current}` },
     signal: AbortSignal.timeout(10_000),
   }).catch(() => undefined)
-  if (!response?.ok) return
+  if (!response?.ok) return previous
   const result = (await response.json()) as { account: Account }
-  if (!result.account.gatewayEnabled || result.account.models.length === 0) return
+  if (!result.account.gatewayEnabled || result.account.models.length === 0) return previous
   process.env.AWMATE_GATEWAY_SESSION = current
   process.env.OPENCODE_CONFIG_CONTENT = JSON.stringify({
     providers: {
@@ -63,6 +67,7 @@ export async function prepareGateway() {
     },
   })
   process.env.AWMATE_DESKTOP_GATEWAY_CONFIG = "1"
+  return true
 }
 
 export async function signIn(openExternal: (url: string) => Promise<unknown>) {

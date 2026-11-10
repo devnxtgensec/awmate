@@ -220,6 +220,8 @@ export function getConfig() {
         appId,
         // "Modified for AWMate": keep the dev application ID for an isolated Windows profile while giving the installer our product name.
         productName: process.env.AWMATE_BUILD === "1" ? "AWMate" : "OpenCode Dev",
+        protocols:
+          process.env.AWMATE_BUILD === "1" ? { name: "AWMate", schemes: ["awmate"] } : base.protocols,
         publish: {
           provider: "generic",
           // "Modified for AWMate": AWMate builds must never auto-update to an upstream OpenCode build.

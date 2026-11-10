@@ -2,6 +2,21 @@
 
 This file records AWMate-specific changes included in pushes so maintainers can distinguish them from upstream OpenCode code. Add a dated entry whenever AWMate changes are pushed.
 
+## 2026-11-10 — Desktop OAuth return and Windows protocol launch
+
+### Changes
+
+- Modified for AWMate: route completed desktop Google OAuth back to the running app with the dedicated `awmate://auth/complete` protocol; normal website sign-in still returns to `/account`.
+- Modified for AWMate: register the Windows development protocol with the Electron entry script, fixing path truncation when launching from a directory containing spaces.
+- Modified for AWMate: keep Electron running after sign-in/sign-out and restart only the isolated AWMate CLI sidecar so it reloads the account's gateway configuration.
+- Modified for AWMate: force AWMate builds to isolate their CLI sidecar from OpenCode processes.
+- Updated `AWMATE_ACCOUNT_AUTH.md` with the callback, protocol registration, sidecar behavior, and verification notes.
+
+### Verification
+
+- Desktop/app typechecks passed and the AWMate desktop production build passed.
+- A live Google consent and gateway response remain to be verified with an enabled account.
+
 ## 2026-11-09 — Desktop Google sign-in and gateway access
 
 ### Changes

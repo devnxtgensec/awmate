@@ -12,3 +12,12 @@ export function consoleReturnWindow(value: string) {
     return
   }
 }
+
+export function isAWMateAuthReturn(value: string) {
+  try {
+    const url = new URL(value)
+    return url.protocol === "awmate:" && url.hostname === "auth" && url.pathname === "/complete"
+  } catch {
+    return false
+  }
+}

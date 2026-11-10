@@ -10,6 +10,7 @@ import { safeWebContentsURL } from "../windows/state"
 import { getLastFocusedWindow, mainWindows } from "../windows"
 import type { Scope } from "@opencode/plugin/gui/host"
 import { marks } from "./marks"
+import { isAWMateAuthReturn } from "./deep-link"
 import {
   createDriver,
   preventsQuit,
@@ -104,17 +105,24 @@ const runtime = Layer.effect(
 
     const secondInstance = (_event: Event, argv: string[]) => {
       const urls = argv.filter((arg) => arg.startsWith("opencode://"))
+      const authReturn = argv.some(isAWMateAuthReturn)
+
+      if (authReturn) focusWindow(getLastFocusedWindow())
 
       if (urls.length) {
         runFork(Effect.logInfo("deep link received via second-instance", { urls }))
         deepLinks.receive(urls)
       }
 
-      if (!urls.length) focusWindow(getLastFocusedWindow())
+      if (!urls.length && !authReturn) focusWindow(getLastFocusedWindow())
     }
 
     const openUrl = (event: Event, url: string) => {
       event.preventDefault()
+      if (isAWMateAuthReturn(url)) {
+        focusWindow(getLastFocusedWindow())
+        return
+      }
       runFork(Effect.logInfo("deep link received via open-url", { url }))
       deepLinks.receive([url])
     }
@@ -195,7 +203,9 @@ const runtime = Layer.effect(
           app.on("activate", activate)
         }
 
-        return restoreWindows()
+        const restored = restoreWindows()
+        if (process.argv.some(isAWMateAuthReturn)) focusWindow(getLastFocusedWindow())
+        return restored
       },
     })
   }),

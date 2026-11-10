@@ -14,7 +14,7 @@ import { BackgroundService } from "../service/background-service"
 import { SidecarCredentials } from "../service/sidecar-credentials"
 import { getWindowID, setBackgroundColor } from "../windows"
 import { sender } from "./context"
-import { signIn, signOut, status } from "../service/awmate-auth"
+import { clearGateway, prepareGateway, signIn, signOut, status } from "../service/awmate-auth"
 import { openExternalURL } from "../files"
 
 export const appHandlers = AppRpcs.toLayer(
@@ -33,13 +33,13 @@ export const appHandlers = AppRpcs.toLayer(
           const account = await signIn(async (url) => {
             if (!(await Effect.runPromise(openExternalURL(url)))) throw new Error("Could not open the sign-in page")
           })
-          setTimeout(lifecycle.relaunch, 750)
+          if (await prepareGateway()) await Effect.runPromise(background.restart)
           return account
         }),
       AppAWMateAuthSignOut: () =>
         promise(async () => {
           await signOut()
-          setTimeout(lifecycle.relaunch, 750)
+          if (clearGateway()) await Effect.runPromise(background.restart)
         }),
       AppReadyDeepLinks: (_request, context) =>
         Effect.sync(() => {

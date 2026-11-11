@@ -1,3 +1,4 @@
+import { awmateBranding } from "./script/awmate-branding"
 import { defineConfig } from "electron-vite"
 import type { Plugin } from "vite"
 import { BetaNotes } from "./script/beta-notes"
@@ -76,6 +77,7 @@ export default defineConfig(async ({ command }) => {
         },
       },
       plugins: [
+        process.env.AWMATE_BUILD === "1" && awmateBranding(),
         {
           name: "opencode:node-pty-narrower",
           enforce: "pre",
@@ -128,7 +130,7 @@ export default defineConfig(async ({ command }) => {
           command === "serve" && process.env.OPENCODE_TEST_ONBOARDING === "1",
         ),
       },
-      plugins: [pickerPlugin(), appPlugin, initialChunk],
+      plugins: [process.env.AWMATE_BUILD === "1" && awmateBranding(), pickerPlugin(), appPlugin, initialChunk],
       publicDir: "../../../app/public",
       root: "src/renderer",
       build: {

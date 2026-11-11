@@ -61,7 +61,7 @@ export function AppBaseProviders(
 ) {
   return (
     <MetaProvider>
-      <Title>OpenCode</Title>
+      <Title>{import.meta.env.AWMATE_BUILD === "true" ? "AWMate" : "OpenCode"}</Title>
       <Font />
       <ThemeProvider onThemeApplied={(mode, scheme) => props.onThemeApplied?.(mode, scheme)}>
         <LanguageProvider locale={props.locale} onNativeTranslations={props.onNativeTranslations}>
@@ -223,9 +223,7 @@ function AWMateAccessGate(props: ParentProps) {
         <main class="flex min-h-screen items-center justify-center bg-v2-background-bg-base px-5 py-10 text-v2-text-text-base">
           <section class="w-full max-w-lg rounded-3xl border border-v2-border-border-muted bg-v2-background-bg-layer-01 p-7 shadow-xl sm:p-10">
             <header class="flex items-center gap-3">
-              <span class="flex size-11 items-center justify-center rounded-xl bg-v2-background-bg-layer-02 text-16-semibold text-v2-icon-icon-accent">
-                A
-              </span>
+              <span class="flex size-11 items-center justify-center rounded-xl bg-v2-background-bg-layer-02 text-16-semibold text-v2-icon-icon-accent"><img src="./awmate-logo.png" alt="" class="size-full object-contain" /></span>
               <div>
                 <p class="text-14-semibold">AWMate</p>
                 <p class="text-12-regular text-v2-text-text-muted">Your Assistive Workmate</p>

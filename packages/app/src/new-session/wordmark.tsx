@@ -159,6 +159,14 @@ export function NewSessionWordmark(props: {
   play?: boolean
   sound?: () => boolean
 }) {
+  // Modified for AWMate: this screen has its own interactive OpenCode artwork.
+  if (import.meta.env.AWMATE_BUILD === "true") {
+    return (
+      <div ref={props.ref} data-component="new-session-wordmark" class="flex justify-center">
+        <img src="./awmate-logo.png" alt="AWMate" class="h-32 max-w-full object-contain" />
+      </div>
+    )
+  }
   // Read once: the lodger stays mounted after handing over to the pin board, and can be dragged back into the hole.
   const lodger = selectWordmarkLodger(props.state())
   let box!: HTMLDivElement

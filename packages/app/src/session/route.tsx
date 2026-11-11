@@ -290,7 +290,7 @@ function SessionDocumentTitle(props: { title: () => string | undefined }) {
   // Keyed: <Title> reads its text inside a meta effect, which would hit a stale Show accessor once the session is deleted.
   return (
     <Show when={props.title()} keyed>
-      {(value) => <Title>{`${value} · OpenCode`}</Title>}
+      {(value) => <Title>{`${value} · ${import.meta.env.AWMATE_BUILD === "true" ? "AWMate" : "OpenCode"}`}</Title>}
     </Show>
   )
 }

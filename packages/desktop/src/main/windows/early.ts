@@ -95,7 +95,7 @@ export function createEarlyWindow() {
     height: state.height,
     show: !deferReveal,
     autoHideMenuBar: true,
-    title: "OpenCode",
+    title: import.meta.env.AWMATE_BUILD === true ? "AWMate" : "OpenCode",
     icon: path.join(icons, `icon.${process.platform === "win32" ? "ico" : "png"}`),
     backgroundColor: storedBackgroundColor(),
     ...platformFrame(tone(), zoom),

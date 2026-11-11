@@ -25,7 +25,7 @@ export const make = Effect.fn("Updater.platform")(function* (channel: string) {
   updateClient.channel = "latest"
   updateClient.requestHeaders = { "User-Agent": userAgent }
   updateClient.allowPrerelease = false
-  updateClient.allowDowngrade = true
+  updateClient.allowDowngrade = app.getName() !== "AWMate"
   updateClient.autoDownload = false
   updateClient.autoInstallOnAppQuit = process.platform === "darwin"
   yield* Effect.logInfo("auto updater configured", {

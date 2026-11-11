@@ -1,20 +1,13 @@
 name: AWMate Windows release
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: GitHub release tag, such as v0.1.5
-        required: true
-        type: string
-      app_version:
-        description: Increasing Electron app version, such as 2.2.6
-        required: true
-        type: string
-      release_notes:
-        description: Notes shown on the GitHub release
-        required: true
-        type: string
+
+concurrency:
+  group: awmate-windows-release
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -23,7 +16,17 @@ jobs:
   build-windows:
     if: github.ref == 'refs/heads/main'
     runs-on: windows-2025
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
+      - name: Calculate next installer version
+        id: version
+        shell: bash
+        run: |
+          set -eo pipefail
+          previous=$(curl -fsSL https://github.com/devnxtgensec/awmate/releases/latest/download/latest.yml | sed -nE "s/^version: ([0-9]+[.][0-9]+[.][0-9]+).*$/\1/p")
+          [[ "$previous" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]
+          echo "version=${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.$((BASH_REMATCH[3]+1))" >> "$GITHUB_OUTPUT"
       - name: Check out AWMate main
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
@@ -39,7 +42,7 @@ jobs:
           AWMATE_BUILD: "1"
           OPENCODE_CHANNEL: dev
           OPENCODE_TARGET: windows-x64
-          OPENCODE_VERSION: ${{ inputs.app_version }}
+          OPENCODE_VERSION: ${{ steps.version.outputs.version }}
         run: bun run build
 
       - name: Build installer and update metadata
@@ -49,7 +52,7 @@ jobs:
           AWMATE_BUILD: "1"
           OPENCODE_CHANNEL: dev
           OPENCODE_TARGET: windows-x64
-          OPENCODE_VERSION: ${{ inputs.app_version }}
+          OPENCODE_VERSION: ${{ steps.version.outputs.version }}
         run: |
           bun run pack
           $unpacked = Join-Path $env:RUNNER_TEMP 'awmate-unpacked'
@@ -63,6 +66,8 @@ jobs:
           if (!(Test-Path -LiteralPath $installer)) { throw 'AWMate Windows installer was not created.' }
           if (!(Test-Path -LiteralPath $metadata)) { throw 'electron-builder did not create latest.yml.' }
 
+          $manifest = Get-Content $metadata -Raw
+          if ($manifest -notmatch ("(?m)^version: " + [regex]::Escape($env:OPENCODE_VERSION) + "\s*$") -or !$manifest.Contains("awmate-desktop-win-x64.exe")) { throw "Invalid updater metadata" }
           $release = Join-Path $env:RUNNER_TEMP 'awmate-release'
           New-Item -ItemType Directory -Path $release -Force | Out-Null
           Copy-Item -LiteralPath $installer -Destination $release
@@ -95,24 +100,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          TAG: ${{ inputs.tag }}
-          RELEASE_NOTES: ${{ inputs.release_notes }}
+          TAG: v${{ needs.build-windows.outputs.version }}
           TARGET_SHA: ${{ github.sha }}
         run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" \
-              release/awmate-desktop-win-x64.exe \
-              release/awmate-desktop-win-x64.zip \
-              release/latest.yml \
-              release/*.blockmap \
-              --clobber
-          else
-            gh release create "$TAG" \
-              release/awmate-desktop-win-x64.exe \
-              release/awmate-desktop-win-x64.zip \
-              release/latest.yml \
-              release/*.blockmap \
-              --title "AWMate $TAG" \
-              --notes "$RELEASE_NOTES" \
-              --target "$TARGET_SHA"
-          fi
+          shopt -s nullglob
+          gh release create "$TAG" release/*.exe release/*.zip release/latest.yml release/*.blockmap --title "AWMate $TAG" --generate-notes --latest --target "$TARGET_SHA"

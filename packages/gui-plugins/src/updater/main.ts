@@ -1,4 +1,4 @@
-import { dialog } from "electron"
+import { app, dialog } from "electron"
 import { Effect, Exit, Schema, Scope } from "effect"
 import { builtinMainContext } from "@opencode/plugin/gui/builtin"
 import { MenubarItem, type Plugin } from "@opencode/plugin/gui/main"
@@ -59,6 +59,16 @@ const setup: Plugin.MainSetup = async (ctx) => {
   })
 
   publish.changed = () => provider.changed()
+
+  // Modified for AWMate: apply releases at startup and offer updates while running.
+  if (enabled && process.platform === "win32" && app.getName() === "AWMate") {
+    runFork(Effect.gen(function* () {
+      const state = yield* updater.check
+      if (state.status === "ready" || state.status === "download-required") yield* updater.install
+    }).pipe(Effect.catch((error) => Effect.logWarning("Startup update failed", { message: error.message }))))
+    const timer = setInterval(() => runFork(updater.check), 30 * 60_000)
+    ctx.onCleanup(() => clearInterval(timer))
+  }
 
   const show = Effect.gen(function* () {
     const state = yield* updater.check

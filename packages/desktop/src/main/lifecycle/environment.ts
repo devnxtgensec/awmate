@@ -1,3 +1,4 @@
+import { configureAWMateStorage } from "./configure"
 import http from "node:http"
 import { getCACertificates, setDefaultCACertificates } from "node:tls"
 import { app } from "electron"
@@ -45,6 +46,8 @@ export const preferApplicationEnvironment = Effect.gen(function* () {
   const shell = process.platform === "win32" ? null : getUserShell()
   const shellEnv = shell ? yield* loadShellEnv(shell) : null
   yield* Effect.sync(() => {
+    const gatewayConfig = process.env.AWMATE_DESKTOP_GATEWAY_CONFIG === "1" ? process.env.OPENCODE_CONFIG_CONTENT : undefined
+    const runtimeRoot = process.env.AWMATE_RUNTIME_ROOT
     if (!shellEnv?.XDG_STATE_HOME) delete process.env.XDG_STATE_HOME
     Object.assign(process.env, {
       ...shellEnv,
@@ -52,6 +55,10 @@ export const preferApplicationEnvironment = Effect.gen(function* () {
       OPENCODE_EXPERIMENTAL_FILEWATCHER: "true",
       OPENCODE_CLIENT: "desktop",
     })
+    if (import.meta.env.AWMATE_BUILD === true && runtimeRoot) {
+      configureAWMateStorage(runtimeRoot)
+      if (gatewayConfig) process.env.OPENCODE_CONFIG_CONTENT = gatewayConfig
+    }
   })
 })
 
@@ -60,7 +67,8 @@ export const prepareDesktop = Effect.gen(function* () {
   const paths = yield* DesktopPaths.resolve
 
   if (app.isPackaged || process.env.OPENCODE_DESKTOP_DISABLE_PROTOCOL_REGISTRATION !== "1") {
-    const scheme = import.meta.env.AWMATE_BUILD === true ? "awmate" : "opencode"
+    // Modified for AWMate: use a dedicated callback scheme in development so installed AWMate cannot capture it.
+    const scheme = import.meta.env.AWMATE_BUILD === true ? (app.isPackaged ? "awmate" : "awmate-local") : "opencode"
     const args = process.platform === "win32" && process.defaultApp ? [app.getAppPath()] : []
     app.setAsDefaultProtocolClient(scheme, process.execPath, args)
   }

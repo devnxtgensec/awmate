@@ -45,6 +45,9 @@ Free service, which requires version `1.18.0` or newer.
 `bun dev` is separate from packaging: it uses local renderer/server mode, the dev app identity, and the CLI source by
 default. `bun dev --download-server <version>` instead downloads that CLI version for local development.
 
+AWMate development builds use the `awmate-local://` Google sign-in return scheme. Packaged AWMate keeps `awmate://`,
+so local testing does not redirect sign-in into an installed copy.
+
 ## Beta channel
 
 Every push to the `beta` branch publishes OpenCode Beta (`ai.opencode.desktop.beta`) as version `0.0.0-beta-<run>` to

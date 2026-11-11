@@ -9,13 +9,14 @@ export const AppAwaitInitialization = Rpc.make("AppAwaitInitialization", { succe
 
 export const AppReconnectService = Rpc.make("AppReconnectService", { success: ServerReadyData })
 
-const AWMateAccount = Schema.Struct({ email: Schema.String, name: Schema.String, gatewayEnabled: Schema.Boolean })
+const AWMateAccount = Schema.Struct({ email: Schema.String, name: Schema.String, desktopAccessStatus: Schema.String, gatewayEnabled: Schema.Boolean })
 
 export const AppAWMateAuthStatus = Rpc.make("AppAWMateAuthStatus", {
   success: Schema.NullOr(AWMateAccount),
 })
 
-export const AppAWMateAuthSignIn = Rpc.make("AppAWMateAuthSignIn", { success: AWMateAccount })
+// Modified for AWMate: preserve expected sign-in failures as readable IPC errors instead of defects.
+export const AppAWMateAuthSignIn = Rpc.make("AppAWMateAuthSignIn", { success: AWMateAccount, error: Schema.String })
 
 export const AppAWMateAuthSignOut = Rpc.make("AppAWMateAuthSignOut")
 

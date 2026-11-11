@@ -255,7 +255,7 @@ export const SettingsGeneral: Component = () => {
     <div class="settings-section">
       <h3 class="settings-section-title">{language.t("settings.general.section.general")}</h3>
       <SettingsList>
-        <InterfaceModeSetting />
+        {import.meta.env.AWMATE_BUILD !== "true" && <InterfaceModeSetting />}
         <LanguageSetting />
 
         <WorkspaceDestinationSetting />

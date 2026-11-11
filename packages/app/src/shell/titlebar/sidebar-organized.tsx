@@ -1,7 +1,7 @@
 import { Schema } from "effect"
 import { createEffect, createMemo, Show, onCleanup, untrack, type JSX } from "solid-js"
 import { Key } from "@solid-primitives/keyed"
-import { createStore } from "solid-js/store"
+import { createStore, reconcile } from "solid-js/store"
 import { useQuery } from "@tanstack/solid-query"
 import { DragDropProvider, PointerSensor } from "@dnd-kit/solid"
 import { isSortable, useSortable } from "@dnd-kit/solid/sortable"
@@ -24,7 +24,6 @@ import { Persist, persisted } from "@/runtime/persistence/storage"
 import { ServerConnection, useServers } from "@/runtime/server/registry"
 import { useGlobal, useServerCtx } from "@/runtime/server/runtime"
 import type { Project } from "@/runtime/server/types"
-import { ProjectIcon } from "@/shell/layout/project-icon"
 import { useLayout } from "@/shell/state/layout"
 import { createProjectSessionActions } from "@/shell/tabs/project-sessions"
 import { useTabs, type Tab } from "@/shell/tabs/tabs"
@@ -119,7 +118,10 @@ export function SidebarOrganized(props: {
               type="button"
               class="flex h-6 w-full shrink-0 items-center gap-1.5 rounded-[6px] px-2 text-start text-[13px] leading-4 font-medium text-v2-text-text-muted hover:text-v2-text-text-base focus-visible:outline-none focus-visible:bg-v2-overlay-simple-overlay-hover"
               aria-expanded={!state.projectsCollapsed}
-              onClick={() => setState("projectsCollapsed", (value) => !value)}
+              onClick={() => {
+                setState("expanded", reconcile({}))
+                setState("projectsCollapsed", (value) => !value)
+              }}
             >
               <span class="min-w-0 truncate">{language.t("sidebar.organize.projects")}</span>
               <Icon
@@ -129,7 +131,6 @@ export function SidebarOrganized(props: {
                 classList={{ "-rotate-90 rtl:rotate-90": state.projectsCollapsed }}
               />
             </button>
-            <Show when={!state.projectsCollapsed}>
               <div class="flex min-w-0 flex-col gap-1">
                 <ProjectList
                   currentTab={props.currentTab}
@@ -139,11 +140,10 @@ export function SidebarOrganized(props: {
                   onSelect={(session) => setLocal("projectSession", session)}
                   state={state}
                   ready={ready()}
-                  onExpand={(key) => setState("expanded", key, (value) => !value)}
+                  onExpand={(key) => setState("expanded", key, (value) => !(value ?? !state.projectsCollapsed))}
                   onReorder={(server, ids) => setState("order", server, ids)}
                 />
               </div>
-            </Show>
           </section>
         </div>
       </ScrollView>
@@ -290,7 +290,7 @@ function ProjectList(props: {
                     server={conn()}
                     actions={projectActions}
                     index={index()}
-                    expanded={props.state.expanded[key()] ?? true}
+                    expanded={props.state.expanded[key()] ?? !props.state.projectsCollapsed}
                     onToggle={() => {
                       if (props.state.expanded[key()]) setLocal("sessionLimits", key(), 5)
                       props.onExpand(key())
@@ -382,7 +382,7 @@ function ProjectRow(props: {
   return (
     <div ref={sortable.ref} class="relative shrink-0">
       <div
-        class="group/project relative flex h-7 min-w-0 shrink-0 items-center rounded-[6px] pe-1 hover:bg-v2-overlay-simple-overlay-hover has-[:focus-visible]:bg-v2-overlay-simple-overlay-hover"
+        class="group/project relative flex h-8 min-w-0 shrink-0 items-center rounded-[6px] pe-1 hover:bg-v2-overlay-simple-overlay-hover has-[:focus-visible]:bg-v2-overlay-simple-overlay-hover"
         onContextMenu={(event) => {
           event.preventDefault()
           setMenu("open", true)
@@ -400,7 +400,7 @@ function ProjectRow(props: {
           onClick={props.onToggle}
         >
           <span class="flex size-4 shrink-0 items-center justify-center">
-            <ProjectIcon project={props.project} />
+            <Icon name="folder" size="small" />
           </span>
           <span class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap" dir="auto">
             {displayName(props.project)}

@@ -133,19 +133,26 @@ function AWMateAccessGate(props: ParentProps) {
   const language = useLanguage()
   // Modified for AWMate: the renderer build injects the string "true" for AWMate builds.
   const required = import.meta.env.AWMATE_BUILD === "true"
-  const [state, setState] = createStore({ phase: required ? "checking" : "approved", busy: false, message: "" })
+  const [state, setState] = createStore({
+    phase: required ? "checking" : "approved",
+    busy: false,
+    message: "",
+    secondsRemaining: 60,
+  })
   let attempt = 0
+  let signInTimer: number | undefined
+  let signInCountdown: number | undefined
 
   const check = async () => {
     if (!required || state.busy) return
     const current = ++attempt
-    setState({ phase: "checking", message: "" })
+    // Modified for AWMate: background refresh keeps the workspace mounted.
     try {
       const account = await platform.awmateAuthStatus?.()
       if (current !== attempt) return
       setState({ phase: account ? "approved" : "signed-out", message: "" })
     } catch (error) {
-      if (current !== attempt) return
+      if (current !== attempt || state.phase === "approved") return
       setState({ phase: "signed-out", message: error instanceof Error ? error.message : language.t("awmate.auth.unavailable") })
     }
   }
@@ -153,7 +160,26 @@ function AWMateAccessGate(props: ParentProps) {
   const signIn = async () => {
     if (!required || state.busy) return
     const current = ++attempt
-    setState({ phase: "signing-in", busy: true, message: "" })
+    const startedAt = Date.now()
+    setState({ phase: "signing-in", busy: true, message: "", secondsRemaining: 60 })
+    window.clearTimeout(signInTimer)
+    window.clearInterval(signInCountdown)
+    signInCountdown = window.setInterval(() => {
+      if (current !== attempt) return
+      setState("secondsRemaining", Math.max(0, 60 - Math.floor((Date.now() - startedAt) / 1000)))
+    }, 1000)
+    signInTimer = window.setTimeout(() => {
+      if (current !== attempt) return
+      attempt++
+      window.clearInterval(signInCountdown)
+      signInCountdown = undefined
+      setState({
+        phase: "signed-out",
+        busy: false,
+        secondsRemaining: 0,
+        message: language.t("awmate.auth.timeout"),
+      })
+    }, 60_000)
     try {
       if (!platform.awmateAuthSignIn) throw new Error(language.t("awmate.auth.unavailable"))
       await platform.awmateAuthSignIn()
@@ -164,8 +190,15 @@ function AWMateAccessGate(props: ParentProps) {
         setState({
           phase: "signed-out",
           busy: false,
-          message: error instanceof Error ? error.message : language.t("awmate.auth.unavailable"),
+          message: error instanceof Error ? error.message : typeof error === "string" ? error : language.t("awmate.auth.unavailable"),
         })
+    } finally {
+      if (current === attempt) {
+        window.clearTimeout(signInTimer)
+        window.clearInterval(signInCountdown)
+        signInTimer = undefined
+        signInCountdown = undefined
+      }
     }
   }
 
@@ -175,6 +208,10 @@ function AWMateAccessGate(props: ParentProps) {
     const timer = window.setInterval(() => void check(), 30_000)
     onCleanup(() => {
       attempt++
+      window.clearTimeout(signInTimer)
+      window.clearInterval(signInCountdown)
+      signInTimer = undefined
+      signInCountdown = undefined
       window.clearInterval(timer)
     })
   })
@@ -183,28 +220,73 @@ function AWMateAccessGate(props: ParentProps) {
     <Show
       when={!required || state.phase === "approved"}
       fallback={
-        <main class="flex min-h-screen items-center justify-center bg-v2-background-bg-base px-6 text-v2-text-text-base">
-          <section class="w-full max-w-md rounded-2xl border border-v2-border-border-muted bg-v2-background-bg-layer-01 p-8 shadow-xl">
-            <p class="mb-2 text-12-medium uppercase tracking-wider text-v2-text-text-muted">AWMate</p>
-            <h1 class="mb-3 text-24-semibold">{language.t("awmate.auth.title")}</h1>
-            <p class="mb-6 text-14-regular text-v2-text-text-muted">{language.t("awmate.auth.body")}</p>
+        <main class="flex min-h-screen items-center justify-center bg-v2-background-bg-base px-5 py-10 text-v2-text-text-base">
+          <section class="w-full max-w-lg rounded-3xl border border-v2-border-border-muted bg-v2-background-bg-layer-01 p-7 shadow-xl sm:p-10">
+            <header class="flex items-center gap-3">
+              <span class="flex size-11 items-center justify-center rounded-xl bg-v2-background-bg-layer-02 text-16-semibold text-v2-icon-icon-accent">
+                A
+              </span>
+              <div>
+                <p class="text-14-semibold">AWMate</p>
+                <p class="text-12-regular text-v2-text-text-muted">Your Assistive Workmate</p>
+              </div>
+            </header>
+
+            <div class="mb-7 mt-9">
+              <p class="mb-3 text-12-medium uppercase tracking-wider text-v2-text-text-muted">
+                {language.t("awmate.auth.eyebrow")}
+              </p>
+              <h1 class="mb-3 text-28-semibold">{language.t("awmate.auth.title")}</h1>
+              <p class="text-14-regular leading-6 text-v2-text-text-muted">{language.t("awmate.auth.body")}</p>
+            </div>
+
             <Show when={state.phase === "checking"}>
-              <p class="mb-4 text-13-regular text-v2-text-text-muted" role="status">{language.t("awmate.auth.checking")}</p>
+              <div class="mb-5 flex items-center gap-3 rounded-xl border border-v2-border-border-muted bg-v2-background-bg-base p-4 text-13-regular text-v2-text-text-muted" role="status">
+                <span class="size-4 animate-spin rounded-full border-2 border-v2-border-border-muted border-t-v2-icon-icon-accent" />
+                {language.t("awmate.auth.checking")}
+              </div>
             </Show>
+
+            <Show when={state.busy}>
+              <div class="mb-5 flex items-start gap-3 rounded-xl border border-v2-border-border-muted bg-v2-background-bg-base p-4" role="status" aria-live="polite">
+                <span class="mt-0.5 size-4 shrink-0 animate-spin rounded-full border-2 border-v2-border-border-muted border-t-v2-icon-icon-accent" />
+                <div class="min-w-0 flex-1">
+                  <p class="text-13-medium">{language.t("awmate.auth.browserOpen")}</p>
+                  <p class="mt-1 text-12-regular leading-5 text-v2-text-text-muted">
+                    {language.t("awmate.auth.browserReturn")}
+                  </p>
+                </div>
+                <span class="shrink-0 text-12-medium tabular-nums text-v2-text-text-muted">
+                  {state.secondsRemaining}s
+                </span>
+              </div>
+            </Show>
+
             <Show when={state.message}>
-              <p class="mb-4 text-13-regular text-v2-text-text-danger" role="alert">{state.message}</p>
+              <p class="mb-5 rounded-xl border border-v2-border-border-muted bg-v2-background-bg-base p-4 text-13-regular leading-5 text-v2-text-text-danger" role="alert">
+                {state.message}
+              </p>
             </Show>
+
             <Button
-              class="mb-4 w-full"
+              class="mb-6 w-full"
               variant="submit"
               disabled={state.busy || state.phase === "checking"}
               onClick={() => void signIn()}
             >
-              {state.busy ? language.t("awmate.auth.waiting") : language.t("awmate.auth.continue")}
+              {state.busy
+                ? language.t("awmate.auth.waiting")
+                : state.message
+                  ? language.t("awmate.auth.retry")
+                  : language.t("awmate.auth.continue")}
             </Button>
-            <a class="text-13-regular text-v2-text-text-muted underline" href="mailto:support@nxtgensec.org">
-              {language.t("awmate.auth.support")}
-            </a>
+
+            <footer class="flex items-center justify-between border-t border-v2-border-border-muted pt-5 text-12-regular text-v2-text-text-muted">
+              <span>{language.t("awmate.auth.secureNote")}</span>
+              <a class="underline underline-offset-4 hover:text-v2-text-text-base" href="mailto:support@nxtgensec.org">
+                {language.t("awmate.auth.support")}
+              </a>
+            </footer>
           </section>
         </main>
       }

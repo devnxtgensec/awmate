@@ -1,14 +1,20 @@
 import { DESKTOP_NATIVE_ENGLISH } from "./desktop-native"
 
 export const dict = {
+  // "Modified for AWMate": copy for the branded sign-in and browser recovery states.
+  "awmate.auth.eyebrow": "Secure access",
   "awmate.auth.title": "Sign in to AWMate",
-  "awmate.auth.body": "Sign in with Google to access the desktop app. An administrator must approve your account.",
+  "awmate.auth.body": "Use your Google account to continue. New accounts need approval from an AWMate administrator.",
   "awmate.auth.continue": "Continue with Google",
   "awmate.auth.waiting": "Waiting for Google sign-in…",
+  "awmate.auth.browserOpen": "Google sign-in is open",
+  "awmate.auth.browserReturn": "Finish in your browser, then return here. This attempt expires in one minute.",
   "awmate.auth.checking": "Checking your account access…",
   "awmate.auth.notApproved": "Your account is not yet approved. Contact support@nxtgensec.org for further details.",
   "awmate.auth.retry": "Try again",
+  "awmate.auth.timeout": "Sign-in timed out. The previous attempt was canceled. Try again to open a fresh Google sign-in.",
   "awmate.auth.support": "Contact support",
+  "awmate.auth.secureNote": "Google sign-in · administrator-approved access",
   "awmate.auth.unavailable": "Could not check your AWMate account. Check your connection and try again.",
   "experiment.voiceCalls": "Voice calls",
   "voice.call": "Call",

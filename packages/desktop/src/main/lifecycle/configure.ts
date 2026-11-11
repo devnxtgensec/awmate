@@ -44,6 +44,10 @@ export function configureApplication() {
     app.commandLine.appendSwitch("enable-precise-memory-info")
 
   const testRoot = createTestRoot()
+  if (import.meta.env.AWMATE_BUILD === true) {
+    const root = testRoot ?? path.join(app.getPath("appData"), APP_ID, "runtime")
+    configureAWMateStorage(root)
+  }
   app.setPath("userData", testRoot ? path.join(testRoot, "desktop") : path.join(app.getPath("appData"), APP_ID))
 
   if (testRoot) {
@@ -83,4 +87,17 @@ function createTestRoot() {
   process.env.XDG_STATE_HOME = path.join(root, "state")
 
   return root
+}
+
+/** Modified for AWMate: scope the bundled OpenCode engine to this desktop profile. */
+export function configureAWMateStorage(root: string) {
+  process.env.XDG_DATA_HOME = path.join(root, "data")
+  process.env.XDG_CONFIG_HOME = path.join(root, "config")
+  process.env.XDG_CACHE_HOME = path.join(root, "cache")
+  process.env.XDG_STATE_HOME = path.join(root, "state")
+  process.env.OPENCODE_DB = testOnboarding ? ":memory:" : path.join(root, "data", "opencode", "awmate.db")
+  process.env.OPENCODE_CONFIG_DIR = path.join(root, "config", "opencode")
+  delete process.env.OPENCODE_CONFIG
+  delete process.env.OPENCODE_CONFIG_CONTENT
+  process.env.AWMATE_RUNTIME_ROOT = root
 }

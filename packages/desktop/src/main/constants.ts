@@ -21,6 +21,9 @@ const appIDs: Record<string, string> = {
 }
 
 // Local renderer/server mode keeps the dev application identity.
-export const APP_NAME = app.isPackaged ? appNames[CHANNEL] : "OpenCode Dev"
+const awmate = import.meta.env.AWMATE_BUILD === true
+export const APP_NAME = awmate ? "AWMate" : app.isPackaged ? appNames[CHANNEL] : "OpenCode Dev"
 
-export const APP_ID = app.isPackaged ? appIDs[CHANNEL] : "ai.opencode.desktop.dev"
+export const APP_ID = awmate
+  ? app.isPackaged ? "ai.awmate.desktop" : "ai.awmate.desktop.local"
+  : app.isPackaged ? appIDs[CHANNEL] : "ai.opencode.desktop.dev"

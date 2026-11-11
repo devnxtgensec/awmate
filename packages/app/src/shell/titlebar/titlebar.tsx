@@ -74,6 +74,11 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
   const command = useCommand()
   const language = useLanguage()
   const settings = useSettings()
+  const accountInitials = () => {
+    const account = awmateAccount()
+    const words = (account?.name.trim() || account?.email.split("@")[0] || "AW").split(/\s+/u)
+    return (words.length > 1 ? [...words[0]][0] + [...words[words.length - 1]][0] : [...words[0]].slice(0, 2).join("")).toLocaleUpperCase()
+  }
   const [awmateAccount, setAWMateAccount] = createSignal<{ email: string; name: string; gatewayEnabled: boolean }>()
   const [awmateAuthBusy, setAWMateAuthBusy] = createSignal(false)
   const [awmateAuthError, setAWMateAuthError] = createSignal("")
@@ -364,14 +369,12 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                   type="button"
                   data-titlebar-tab-action
                   data-action="vertical-tabs-search"
-                  class="group flex h-7 w-full shrink-0 items-center gap-2 rounded-[6px] px-2 text-[13px] leading-4 text-v2-text-text-faint hover:text-v2-text-text-base"
+                  title={language.t("command.session.search")}
+                  aria-label={language.t("command.session.search")}
+                  class="flex h-7 w-full items-center justify-center rounded-md hover:bg-v2-background-bg-layer-02"
                   onClick={() => command.trigger("sessions.search")}
                 >
-                  <Icon name="magnifying-glass" class="shrink-0" />
-                  <span class="min-w-0 truncate">{language.t("command.session.search")}</span>
-                  <div class="ms-auto hidden shrink-0 group-hover:block group-focus-visible:block" aria-hidden="true">
-                    <Keybind keys={command.keybindParts("sessions.search")} variant="neutral" dir="ltr" />
-                  </div>
+                  <Icon name="magnifying-glass" />
                 </button>
               </Show>
             )
@@ -730,13 +733,13 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                 <SidebarToggle handoff="out" />
                               </div>
                             </Show>
-                            <div class="flex w-full shrink-0 flex-col gap-[3px]">
-                              {searchButton(true)}
+                            <div class="grid w-full shrink-0 grid-cols-[minmax(0,4fr)_minmax(0,1fr)] items-center gap-1">
                               <RecentlyClosedTabsMenu
                                 vertical
                                 onNewTab={openNewTab}
                                 keybind={command.keybindParts("tab.new")}
                               />
+                              {searchButton(true)}
                             </div>
                             <div class="h-4 w-full shrink-0" aria-hidden="true" />
                             <div class="flex min-h-0 flex-1 flex-col gap-1">
@@ -761,7 +764,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                             </Show>
                             {/* "Modified for AWMate": show the signed-in account with gateway status, sign-in, Settings, and Help. */}
                             <div class="mt-auto w-full shrink-0 border-t border-v2-border-border-muted pt-2">
-                              <Menu appearance="standard" gutter={6} modal={false} placement="top-start">
+                              <Menu appearance="standard" gutter={6} modal={false} sameWidth placement="top-start">
                                 <Menu.Trigger
                                   type="button"
                                   class="flex w-full items-center gap-2 rounded-lg p-2 text-start hover:bg-v2-background-bg-layer-02 focus-visible:outline-none focus-visible:bg-v2-background-bg-layer-02 [app-region:no-drag]"
@@ -769,7 +772,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                   title="Account"
                                 >
                                   <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-v2-background-bg-layer-02 text-[12px] font-semibold text-v2-text-text-base">
-                                    AW
+                                    {accountInitials()}
                                   </span>
                                   <span class="flex min-w-0 flex-1 flex-col">
                                     <span class="truncate text-13-medium text-v2-text-text-base">
@@ -782,10 +785,10 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                   <Icon name="chevron-right" size="small" class="shrink-0 text-v2-icon-icon-muted" />
                                 </Menu.Trigger>
                                 <Menu.Portal>
-                                  <Menu.Content class="desktop-app-menu w-[252px]">
+                                  <Menu.Content class="awmate-account-menu !min-w-0 box-border">
                                     <div class="flex items-center gap-3 px-2 py-2">
                                       <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-v2-background-bg-layer-02 text-[12px] font-semibold text-v2-text-text-base">
-                                        AW
+                                        {accountInitials()}
                                       </span>
                                       <span class="flex min-w-0 flex-col">
                                         <span class="truncate text-13-medium text-v2-text-text-base">

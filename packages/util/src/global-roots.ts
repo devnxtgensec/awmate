@@ -14,6 +14,6 @@ export function roots(app: string) {
     cache: path.join(cache!, app),
     config: path.join(config!, app),
     state: path.join(state!, app),
-    tmp: path.join(os.tmpdir(), app),
+    tmp: process.env.AWMATE_RUNTIME_ROOT ? path.join(process.env.AWMATE_RUNTIME_ROOT, "tmp", app) : path.join(os.tmpdir(), app),
   }
 }

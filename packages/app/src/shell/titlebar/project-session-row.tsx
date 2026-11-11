@@ -121,22 +121,13 @@ export function ProjectSessionRow(props: {
         type="button"
         data-titlebar-tab-action
         data-state={props.active ? "pressed" : undefined}
-        class="relative flex h-7 w-full shrink-0 items-center gap-2 rounded-[6px] ps-8 pe-2 text-start text-[13px] leading-[var(--line-height-compact)] font-medium focus-visible:outline-none"
-        classList={{ "text-v2-text-text-base": props.active, "text-v2-text-text-faint": !props.active }}
+        class="relative flex h-8 w-full shrink-0 items-center gap-2 rounded-[6px] ps-8 pe-2 text-start text-[13px] leading-[var(--line-height-compact)] font-medium focus-visible:outline-none"
+        classList={{ "text-v2-text-text-base": props.active, "text-v2-text-text-muted": !props.active }}
         aria-current={props.active ? "page" : undefined}
         title={sessionLabel(props.session)}
         onClick={props.onOpen}
       >
-        <Show when={props.openTab}>
-          <span
-            role="img"
-            aria-label={language.t("sidebar.organize.openTab")}
-            title={language.t("sidebar.organize.openTab")}
-            class="absolute start-2 top-1/2 flex size-4 -translate-y-1/2 items-center justify-center"
-          >
-            <span class="size-1 rounded-full bg-v2-icon-icon-faint" />
-          </span>
-        </Show>
+        <Show when={props.openTab}><span class="sr-only">{language.t("sidebar.organize.openTab")}</span></Show>
         <span class="min-w-0 flex-1 truncate" dir="auto">
           {sessionLabel(props.session)}
         </span>

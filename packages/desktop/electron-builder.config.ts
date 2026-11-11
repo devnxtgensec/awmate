@@ -213,7 +213,9 @@ const getBase = (appId: string): Configuration => {
 
 export function getConfig() {
   const channel = resolveChannel()
-  const appId = APP_IDS[channel]
+  const awmate = process.env.AWMATE_BUILD === "1"
+  if (awmate && channel !== "dev") throw new Error("Use the AWMate release channel (dev) when packaging AWMate")
+  const appId = awmate ? "ai.awmate.desktop" : APP_IDS[channel]
   const base = getBase(appId)
 
   switch (channel) {
@@ -221,7 +223,8 @@ export function getConfig() {
       return {
         ...base,
         appId,
-        // "Modified for AWMate": keep the dev application ID for an isolated Windows profile while giving the installer our product name.
+        // Modified for AWMate: use a dedicated package identity for installer and updater storage.
+        extraMetadata: { ...base.extraMetadata, ...(awmate && { name: "awmate-desktop" }) },
         productName: process.env.AWMATE_BUILD === "1" ? "AWMate" : "OpenCode Dev",
         protocols:
           process.env.AWMATE_BUILD === "1" ? { name: "AWMate", schemes: ["awmate"] } : base.protocols,

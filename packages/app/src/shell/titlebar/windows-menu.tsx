@@ -1,5 +1,5 @@
 import { makeEventListener } from "@solid-primitives/event-listener"
-import { For, onMount } from "solid-js"
+import { createSignal, For, onMount } from "solid-js"
 import { Menu } from "@opencode/ui/menu"
 
 import { matchKeybind, parseKeybind, useCommand } from "@/shell/commands/command"
@@ -103,6 +103,8 @@ export function WindowsAppMenu(props: {
     )
   })
 
+  const [openMenu, setOpenMenu] = createSignal<string>()
+
   // "Modified for AWMate": replace the hamburger with a compact File/Edit/View/Help menubar.
   return (
     <div class="flex h-7 shrink-0 items-center gap-0.5" data-slot="desktop-menubar">
@@ -114,9 +116,10 @@ export function WindowsAppMenu(props: {
         )}
       >
         {(menu) => (
-          <Menu appearance="standard" gutter={4} modal={false} placement="bottom-start">
+          <Menu open={openMenu() === menu.id} onOpenChange={(open) => setOpenMenu(current => open ? menu.id : current === menu.id ? undefined : current)} appearance="standard" gutter={4} modal={false} placement="bottom-start">
             <Menu.Trigger
               class="flex h-7 items-center rounded-[4px] px-2 text-[13px] text-v2-text-text-base hover:bg-v2-background-bg-base [app-region:no-drag]"
+              onPointerEnter={(event) => { if (event.pointerType === "mouse") setOpenMenu(menu.id) }}
               onPointerDown={rememberFocus}
               onKeyDown={rememberFocus}
             >

@@ -29,12 +29,15 @@ export const appHandlers = AppRpcs.toLayer(
       AppReconnectService: () => background.reconnect.pipe(Effect.map(SidecarCredentials.ready)),
       AppAWMateAuthStatus: () => promise(status),
       AppAWMateAuthSignIn: () =>
-        promise(async () => {
-          const account = await signIn(async (url) => {
-            if (!(await Effect.runPromise(openExternalURL(url)))) throw new Error("Could not open the sign-in page")
-          })
-          if (await prepareGateway()) await Effect.runPromise(background.restart)
-          return account
+        Effect.tryPromise({
+          try: async () => {
+            const account = await signIn(async (url) => {
+              if (!(await Effect.runPromise(openExternalURL(url)))) throw new Error("Could not open the sign-in page")
+            })
+            if (await prepareGateway()) await Effect.runPromise(background.restart)
+            return account
+          },
+          catch: (error) => (error instanceof Error ? error.message : String(error)),
         }),
       AppAWMateAuthSignOut: () =>
         promise(async () => {

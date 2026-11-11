@@ -306,7 +306,12 @@ export function createComposerModel(adapter: ComposerAdapter, options?: { queue?
     authenticate: async () => {
       if (!platform.awmateAuthStatus || !platform.awmateAuthSignIn) return true
       try {
-        if (await platform.awmateAuthStatus()) return true
+        const account = await platform.awmateAuthStatus()
+        if (account?.desktopAccessStatus === "approved") return true
+        if (account) {
+          showToast({ title: "Desktop access is not approved", description: "Contact support@nxtgensec.org for further details." })
+          return false
+        }
         showToast({
           title: "Sign in to AWMate before sending a query",
           description: "Complete Google sign-in in the browser, then send your query again.",

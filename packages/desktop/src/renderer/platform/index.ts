@@ -24,6 +24,7 @@ export function createDesktopPlatform(api: ElectronAPI, windowState: DesktopWind
     windowID: windowState.id,
     awmateAuthStatus: () => api.awmateAuthStatus(),
     awmateAuthSignIn: () => api.awmateAuthSignIn(),
+    awmateClaimCredit: () => api.awmateClaimCredit(),
     awmateAuthSignOut: () => api.awmateAuthSignOut(),
     ...createDesktopFiles(api, os),
     ...createDesktopStorage(api),

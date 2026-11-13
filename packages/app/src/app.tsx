@@ -63,7 +63,7 @@ export function AppBaseProviders(
     <MetaProvider>
       <Title>{import.meta.env.AWMATE_BUILD === "true" ? "AWMate" : "OpenCode"}</Title>
       <Font />
-      <ThemeProvider onThemeApplied={(mode, scheme) => props.onThemeApplied?.(mode, scheme)}>
+      <ThemeProvider defaultTheme={import.meta.env.AWMATE_BUILD === "true" ? "aura" : undefined} onThemeApplied={(mode, scheme) => props.onThemeApplied?.(mode, scheme)}>
         <LanguageProvider locale={props.locale} onNativeTranslations={props.onNativeTranslations}>
           <UiI18nBridge>
             <ErrorBoundary
@@ -281,7 +281,7 @@ function AWMateAccessGate(props: ParentProps) {
 
             <footer class="flex items-center justify-between border-t border-v2-border-border-muted pt-5 text-12-regular text-v2-text-text-muted">
               <span>{language.t("awmate.auth.secureNote")}</span>
-              <a class="underline underline-offset-4 hover:text-v2-text-text-base" href="mailto:support@nxtgensec.org">
+              <a class="underline underline-offset-4 hover:text-v2-text-text-base" href="https://awmate.nxtgensec.org">
                 {language.t("awmate.auth.support")}
               </a>
             </footer>

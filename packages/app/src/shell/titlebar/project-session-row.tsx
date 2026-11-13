@@ -1,3 +1,5 @@
+import { Icon } from "@opencode/ui/icon"
+import { IconButton } from "@opencode/ui/icon-button"
 import { createMemo, createSignal, onCleanup, Show, untrack } from "solid-js"
 import { useQueryClient } from "@tanstack/solid-query"
 import type { SessionInfo } from "@opencode/client/promise"
@@ -114,14 +116,42 @@ export function ProjectSessionRow(props: {
     )
   }
 
+  const items = () => (<>
+          <Menu.Item
+            disabled={!ctx()}
+            onSelect={() =>
+              dialog.show(() => (
+                <RenameDialog
+                  title={sessionLabel(props.session)}
+                  onRename={(title) => rename(props.server, props.session, title)}
+                />
+              ))
+            }
+          >
+            {language.t("common.rename")}
+          </Menu.Item>
+          <Menu.Item
+            disabled={!ctx() || exporter.exporting(exportTarget())}
+            onSelect={() => exporter.export(exportTarget())}
+          >
+            {language.t("common.export")}…
+          </Menu.Item>
+          <SessionReadMenuItem server={props.server} session={props.session} />
+          <Menu.Separator />
+          <Menu.Item disabled={!ctx()} onSelect={() => dialog.show(() => <DeleteDialog />)}>
+            {language.t("common.delete")}…
+          </Menu.Item>
+  </>)
+
   return (
+    <div class="group/chat flex items-center min-w-0">
     <Menu.Context modal={false}>
       <Menu.Context.Trigger
         as="button"
         type="button"
         data-titlebar-tab-action
         data-state={props.active ? "pressed" : undefined}
-        class="relative flex h-8 w-full shrink-0 items-center gap-2 rounded-[6px] ps-8 pe-2 text-start text-[13px] leading-[var(--line-height-compact)] font-medium focus-visible:outline-none"
+        class="relative flex h-8 min-w-0 flex-1 items-center gap-2 rounded-[6px] ps-8 pe-2 text-start text-[13px] leading-[var(--line-height-compact)] font-medium focus-visible:outline-none"
         classList={{ "text-v2-text-text-base": props.active, "text-v2-text-text-muted": !props.active }}
         aria-current={props.active ? "page" : undefined}
         title={sessionLabel(props.session)}
@@ -150,37 +180,19 @@ export function ProjectSessionRow(props: {
             if (dialog.active) event.preventDefault()
           }}
         >
-          <Menu.Item
-            disabled={!ctx()}
-            onSelect={() =>
-              dialog.show(() => (
-                <RenameDialog
-                  title={sessionLabel(props.session)}
-                  onRename={(title) => rename(props.server, props.session, title)}
-                />
-              ))
-            }
-          >
-            {language.t("common.rename")}
-          </Menu.Item>
-          <Menu.Item
-            disabled={!ctx() || exporter.exporting(exportTarget())}
-            onSelect={() => exporter.export(exportTarget())}
-          >
-            {language.t("common.export")}…
-          </Menu.Item>
-          <SessionReadMenuItem server={props.server} session={props.session} />
-          <Menu.Separator />
-          <Menu.Item disabled={!ctx()} onSelect={() => dialog.show(() => <DeleteDialog />)}>
-            {language.t("common.delete")}…
-          </Menu.Item>
+          {items()}
         </Menu.Context.Content>
       </Menu.Context.Portal>
     </Menu.Context>
+    <Menu placement="bottom-end" modal={false}>
+      <Menu.Trigger as={IconButton} variant="ghost-muted" size="small" icon={<Icon name="outline-dots" />} aria-label={`Options for ${sessionLabel(props.session)}`} />
+      <Menu.Portal><Menu.Content>{items()}</Menu.Content></Menu.Portal>
+    </Menu>
+    </div>
   )
 }
 
-export function RenameDialog(props: { title: string; onRename: (title: string) => Promise<void> }) {
+export function RenameDialog(props: { heading?: string; title: string; onRename: (title: string) => Promise<void> }) {
   const language = useLanguage()
 
   const dialog = useDialog()
@@ -244,7 +256,7 @@ export function RenameDialog(props: { title: string; onRename: (title: string) =
   return (
     <Dialog fit>
       <DialogHeader hideClose>
-        <DialogTitleGroup title={language.t("command.session.rename")} />
+        <DialogTitleGroup title={props.heading ?? language.t("command.session.rename")} />
       </DialogHeader>
       <form
         class="contents"

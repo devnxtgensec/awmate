@@ -7,7 +7,7 @@ const tokenPath = () => path.join(app.getPath("userData"), "awmate-account.bin")
 type LoginAttempt = { controller: AbortController; code?: string }
 let activeLogin: LoginAttempt | undefined
 
-export type Account = { email: string; name: string; desktopAccessStatus: string; gatewayEnabled: boolean; models: string[] }
+export type Account = { email: string; name: string; desktopAccessStatus: string; gatewayEnabled: boolean; opencodeEnabled: boolean; models: string[] }
 
 export function clearGateway() {
   if (process.env.AWMATE_DESKTOP_GATEWAY_CONFIG !== "1") return false
@@ -24,6 +24,18 @@ async function token() {
   } catch {
     return undefined
   }
+}
+
+export async function claimDailyCredit() {
+  const current = await token()
+  if (!current) return "Sign in to AWMate to claim credit."
+  const response = await fetch(`${platformURL}/api/daily-bonus`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${current}` },
+    signal: AbortSignal.timeout(10000),
+  })
+  const result = await response.json() as { message?: string; error?: string }
+  return response.ok ? "Extra $1 claimed. Send your message again." : result.error ?? "Claim failed. Try again."
 }
 
 export async function status() {
@@ -47,6 +59,15 @@ export async function status() {
   return result.account
 }
 
+let appliedPermissions = ""
+function permissions(account: Account | null) {
+  return JSON.stringify(account && [account.email, account.desktopAccessStatus, account.opencodeEnabled, account.gatewayEnabled, account.models])
+}
+export async function refreshPermissions(account: Account | null) {
+  if (permissions(account) === appliedPermissions) return false
+  if (!account) { appliedPermissions = permissions(null); return clearGateway() }
+  return prepareGateway()
+}
 export async function prepareGateway() {
   const previous = clearGateway()
   const current = await token()
@@ -57,21 +78,24 @@ export async function prepareGateway() {
   }).catch(() => undefined)
   if (!response?.ok) return previous
   const result = (await response.json()) as { account: Account }
-  if (result.account.desktopAccessStatus !== "approved" || !result.account.gatewayEnabled || result.account.models.length === 0) return previous
+  appliedPermissions = permissions(result.account)
+  if (result.account.desktopAccessStatus !== "approved") return previous
+  const models = result.account.models.length ? result.account.models : ["glm5.3-flash", "deepseekv4.1-flash-1017", "gemma4", "sarvam-105b"]
   process.env.AWMATE_GATEWAY_SESSION = current
   process.env.OPENCODE_CONFIG_CONTENT = JSON.stringify({
-    providers: {
+    policies: [{ action: "provider.use", resource: "*", effect: "deny" }, { action: "provider.use", resource: "awmate", effect: "allow" }],
+    providers: result.account.gatewayEnabled ? {
       awmate: {
-        name: "AWMate",
-        package: "@ai-sdk/openai-compatible",
+        name: "AWMate Gateway",
+        package: "aisdk:@ai-sdk/openai-compatible",
         env: ["AWMATE_GATEWAY_SESSION"],
         settings: {
           baseURL: `${platformURL}/api/gateway/v1`,
           apiKey: "{env:AWMATE_GATEWAY_SESSION}",
         },
-        models: Object.fromEntries(result.account.models.map((id) => [id, { modelID: id, name: id }])),
+        models: Object.fromEntries(models.map((id) => [id, { name: id }])),
       },
-    },
+    } : {},
   })
   process.env.AWMATE_DESKTOP_GATEWAY_CONFIG = "1"
   return true

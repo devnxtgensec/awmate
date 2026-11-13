@@ -307,7 +307,14 @@ export function createComposerModel(adapter: ComposerAdapter, options?: { queue?
       if (!platform.awmateAuthStatus || !platform.awmateAuthSignIn) return true
       try {
         const account = await platform.awmateAuthStatus()
-        if (account?.desktopAccessStatus === "approved") return true
+        if (account?.desktopAccessStatus === "approved") {
+          const provider = adapter.controls().model.selection.key()?.providerID
+          if (provider !== "awmate" || !account.gatewayEnabled) {
+            showToast({ title: "Gateway access is disabled for this account." })
+            return false
+          }
+          return true
+        }
         if (account) {
           showToast({ title: "Desktop access is not approved", description: "Contact support@nxtgensec.org for further details." })
           return false

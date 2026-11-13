@@ -11,6 +11,20 @@ import type definition from "./index"
 export default function BetaNotesPage() {
   const ctx = usePlugin<typeof definition>()
 
+  if (import.meta.env.AWMATE_BUILD === "true") return <>
+    <div class="settings-tab-header"><div class="settings-tab-header-row">
+      <h2 class="settings-tab-title">What’s new in AWMate</h2>
+      <Button type="button" variant="ghost-muted" onClick={() => ctx.system.openExternal("https://github.com/devnxtgensec/awmate/releases")}>AWMate releases</Button>
+    </div></div>
+    <div class="settings-tab-body settings-tab-body--sectioned"><section class="settings-section">
+      <h3 class="settings-section-title">In this build</h3>
+      <div data-component="settings-list" data-variant="catalog">
+        <For each={["Choose your gateway, model, and reasoning level in chat.", "Rename and export projects and chats from the sidebar.", "Claim extra daily gateway credit directly in a chat.", "Aura is the default desktop theme."]}>
+          {note => <div data-component="settings-row"><div data-slot="settings-row-copy"><span data-slot="settings-row-title">{note}</span></div></div>}
+        </For>
+      </div>
+    </section></div>
+  </>
   return (
     <BetaNotesView
       embedded={Option.getOrUndefined(decodeEmbeddedNotes(import.meta.env.OPENCODE_BETA_NOTES))}

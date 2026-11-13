@@ -14,7 +14,7 @@ import { BackgroundService } from "../service/background-service"
 import { SidecarCredentials } from "../service/sidecar-credentials"
 import { getWindowID, setBackgroundColor } from "../windows"
 import { sender } from "./context"
-import { clearGateway, prepareGateway, signIn, signOut, status } from "../service/awmate-auth"
+import { refreshPermissions, claimDailyCredit, clearGateway, prepareGateway, signIn, signOut, status } from "../service/awmate-auth"
 import { openExternalURL } from "../files"
 
 export const appHandlers = AppRpcs.toLayer(
@@ -27,7 +27,11 @@ export const appHandlers = AppRpcs.toLayer(
     return AppRpcs.of({
       AppAwaitInitialization: () => background.connection.pipe(Effect.map(SidecarCredentials.ready)),
       AppReconnectService: () => background.reconnect.pipe(Effect.map(SidecarCredentials.ready)),
-      AppAWMateAuthStatus: () => promise(status),
+      AppAWMateAuthStatus: () => promise(async () => {
+        const account = await status()
+        if (await refreshPermissions(account)) await Effect.runPromise(background.restart)
+        return account
+      }),
       AppAWMateAuthSignIn: () =>
         Effect.tryPromise({
           try: async () => {
@@ -39,6 +43,7 @@ export const appHandlers = AppRpcs.toLayer(
           },
           catch: (error) => (error instanceof Error ? error.message : String(error)),
         }),
+      AppAWMateClaimCredit: () => promise(claimDailyCredit),
       AppAWMateAuthSignOut: () =>
         promise(async () => {
           await signOut()

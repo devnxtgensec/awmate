@@ -35,6 +35,14 @@ jobs:
       - name: Set up Bun and dependencies
         uses: ./.github/actions/setup-bun
 
+      - name: Build the AWMate runtime
+        working-directory: packages/cli
+        shell: pwsh
+        env:
+          OPENCODE_CHANNEL: dev
+          OPENCODE_VERSION: ${{ steps.version.outputs.version }}
+        run: bun run script/build.ts --single --skip-install
+
       - name: Build AWMate desktop
         working-directory: packages/desktop
         shell: pwsh

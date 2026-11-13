@@ -15,7 +15,12 @@ import { ScrollView } from "@opencode/ui/scroll-view"
 import { displayName } from "@opencode/ui/project-avatar"
 import { homeSessionsQuery } from "@/home/sessions/queries"
 import { createProjectActions } from "@/home/projects/actions"
-import { ProjectMenuItems } from "@/home/projects/menu"
+import { fetchSessionExport, sessionExportFilename } from "@/session/commands/export"
+import { usePlatform } from "@/runtime/platform/platform"
+import { useDialog } from "@opencode/ui/context/dialog"
+import { Dialog, DialogHeader, DialogTitleGroup, DialogFooter } from "@opencode/ui/dialog"
+import { showToast } from "@/shell/notifications/toast"
+import { RenameDialog } from "./project-session-row"
 import { buildHomeSessionRecords } from "@/home/sessions/records"
 import { arrayMove } from "@/runtime/array-move"
 import { useLanguage } from "@/runtime/i18n/language"
@@ -370,6 +375,32 @@ function ProjectRow(props: {
 
   const [menu, setMenu] = createStore({ open: false })
 
+  const global = useGlobal()
+  const platform = usePlatform()
+  const dialog = useDialog()
+  const [exporting, setExporting] = createStore({ busy: false })
+  const context = () => global.serverCtx(ServerConnection.key(props.server))
+  async function exportProject() {
+    const ctx = context()
+    if (!ctx || exporting.busy || !platform.saveFile) return
+    const project = props.project
+    setExporting("busy", true)
+    try {
+      const sessions = []
+      let cursor: string | undefined
+      do {
+        const page = await ctx.sdk.api.session.list({ project: project.id, limit: 100, cursor })
+        for (const session of page.data) sessions.push(await fetchSessionExport({ api: ctx.sdk.api, sessionID: session.id }))
+        cursor = page.cursor.next ?? undefined
+      } while (cursor)
+      await platform.saveFile({ defaultPath: sessionExportFilename({ id: project.id, title: displayName(project) }) }, JSON.stringify({ project, sessions }, null, 2))
+    } catch (error) {
+      showToast({ title: "Project export failed", description: String(error) })
+    } finally {
+      setExporting("busy", false)
+    }
+  }
+
   const sortable = useSortable({
     get id() {
       return props.project.id
@@ -427,20 +458,17 @@ function ProjectRow(props: {
             />
             <Menu.Portal>
               <Menu.Content>
-                <ProjectMenuItems
-                  server={props.server}
-                  project={props.project}
-                  unread={props.actions.hasUnread(props.server, props.project)}
-                  canImportSession={props.actions.canImportSession}
-                  importingSession={props.actions.importingSession()}
-                  canRevealProject={props.actions.canReveal}
-                  onOpenProjectNewSession={props.actions.openNewSession}
-                  onImportSession={props.actions.importSession}
-                  onEditProject={props.actions.edit}
-                  onRevealProject={props.actions.reveal}
-                  onClearNotifications={props.actions.clearNotifications}
-                  onHideProject={props.actions.hide}
-                />
+                <Menu.Item onSelect={() => dialog.show(() => <RenameDialog title={displayName(props.project)} heading="Rename project" onRename={async name => {
+                    const ctx = context()
+                    if (!ctx) throw new Error("Project server unavailable")
+                    ctx.sync.project.update(await ctx.sdk.api.project.update({ projectID: props.project.id, name }))
+                  }} />)}>Rename</Menu.Item>
+                <Menu.Item disabled={exporting.busy || !platform.saveFile} onSelect={() => void exportProject()}>Export…</Menu.Item>
+                <Menu.Separator />
+                <Menu.Item onSelect={() => dialog.show(() => <Dialog fit>
+                  <DialogHeader><DialogTitleGroup title="Remove project from sidebar?" description={`Remove ${displayName(props.project)} from Projects? Its chats and files will stay on disk.`} /></DialogHeader>
+                  <DialogFooter><Button onClick={() => dialog.close()}>Cancel</Button><Button variant="danger" onClick={() => { props.actions.hide(props.server, props.project); dialog.close() }}>Remove project</Button></DialogFooter>
+                </Dialog>)}>Delete from sidebar…</Menu.Item>
               </Menu.Content>
             </Menu.Portal>
           </Menu>

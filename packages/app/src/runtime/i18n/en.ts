@@ -4,7 +4,7 @@ export const dict = {
   // "Modified for AWMate": copy for the branded sign-in and browser recovery states.
   "awmate.auth.eyebrow": "Secure access",
   "awmate.auth.title": "Sign in to AWMate",
-  "awmate.auth.body": "Use your Google account to continue. New accounts need approval from an AWMate administrator.",
+  "awmate.auth.body": "Sign in with Google to use AWMate Gateway with $1 of daily credit.",
   "awmate.auth.continue": "Continue with Google",
   "awmate.auth.waiting": "Waiting for Google sign-in…",
   "awmate.auth.browserOpen": "Google sign-in is open",
@@ -14,7 +14,7 @@ export const dict = {
   "awmate.auth.retry": "Try again",
   "awmate.auth.timeout": "Sign-in timed out. The previous attempt was canceled. Try again to open a fresh Google sign-in.",
   "awmate.auth.support": "Contact support",
-  "awmate.auth.secureNote": "Google sign-in · administrator-approved access",
+  "awmate.auth.secureNote": "Google sign-in · AWMate Gateway",
   "awmate.auth.unavailable": "Could not check your AWMate account. Check your connection and try again.",
   "experiment.voiceCalls": "Voice calls",
   "voice.call": "Call",

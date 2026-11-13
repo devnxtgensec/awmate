@@ -34,8 +34,9 @@ export type FatalRendererErrorLog = {
 }
 
 type PlatformBase = {
-  awmateAuthStatus?(): Promise<{ email: string; name: string; desktopAccessStatus: string; gatewayEnabled: boolean } | null>
-  awmateAuthSignIn?(): Promise<{ email: string; name: string; desktopAccessStatus: string; gatewayEnabled: boolean }>
+  awmateAuthStatus?(): Promise<{ email: string; name: string; desktopAccessStatus: string; gatewayEnabled: boolean; opencodeEnabled?: boolean } | null>
+  awmateAuthSignIn?(): Promise<{ email: string; name: string; desktopAccessStatus: string; gatewayEnabled: boolean; opencodeEnabled?: boolean }>
+  awmateClaimCredit?(): Promise<string>
   awmateAuthSignOut?(): Promise<void>
   requestMicrophone?(): Promise<boolean>
   setVoiceCallActive?(active: boolean): Promise<void>

@@ -50,7 +50,7 @@ export function SettingsAbout(props: { active: boolean }) {
   let copyTimer: ReturnType<typeof setTimeout> | undefined
 
   const [otherContributors] = createResource(
-    () => props.active || undefined,
+    () => (import.meta.env.AWMATE_BUILD !== "true" && props.active) || undefined,
     () => loadOtherContributorCount(platform.fetch ?? fetch),
     { initialValue: FALLBACK_OTHER_CONTRIBUTORS },
   )
@@ -147,6 +147,16 @@ export function SettingsAbout(props: { active: boolean }) {
         <p>{language.t("settings.about.license")}</p>
       </div>
 
+      {import.meta.env.AWMATE_BUILD === "true" ? <>
+        <img src="./awmate-logo.png" alt="AWMate" class="mx-auto h-36 max-w-full object-contain" />
+        <div class="settings-about-details">
+          <h2>AWMate | Your Assistive Workmate</h2>
+          <p>Developed by NxtGenSec Assistive Workmate Labs.</p>
+          <p><ExternalLink href="https://awmate.nxtgensec.org">awmate.nxtgensec.org</ExternalLink></p>
+          <button type="button" class="settings-about-link" onClick={() => void showNotices()}>{language.t("settings.about.notices.title")}</button>
+          <p class="settings-about-faint">Built on OpenCode · © Anomaly Innovations, Inc.</p>
+        </div>
+      </> : <>
       <AnimatedWordmark active={props.active} />
 
       <div class="settings-about-credits">
@@ -186,6 +196,7 @@ export function SettingsAbout(props: { active: boolean }) {
         <p>{language.t("settings.about.copyright")}</p>
         <img class="settings-about-anomaly-brush" src={anomalyBrush} alt="" />
       </div>
+      </>}
     </div>
   )
 }

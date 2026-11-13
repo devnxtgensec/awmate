@@ -1,4 +1,3 @@
-import { showToast } from "@/shell/notifications/toast"
 import { createEffect, createMemo, createSignal, Match, on, onCleanup, onMount, Show, Switch, untrack } from "solid-js"
 import { Portal } from "solid-js/web"
 import { useLocation } from "@solidjs/router"
@@ -85,16 +84,23 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
   const [awmateAuthError, setAWMateAuthError] = createSignal("")
 
   onMount(() => {
-    void platform
-      .awmateAuthStatus?.()
-      .then(setAWMateAccount)
-      .catch((error) => setAWMateAuthError(String(error)))
+    const refresh = () => void platform.awmateAuthStatus?.().then(setAWMateAccount).catch(error => setAWMateAuthError(String(error)))
+    refresh()
+    window.addEventListener("focus", refresh)
+    onCleanup(() => window.removeEventListener("focus", refresh))
   })
 
   // Modified for AWMate: both sidebar Settings entries share the beta notice.
-  const showSettingsBeta = () => showToast({ title: "Still under beta" })
+  const betaSettings = (label: string) => {
+    const [active, setActive] = createSignal(false)
+    return <Menu.Item closeOnSelect={false} onPointerEnter={() => setActive(true)} onPointerLeave={() => setActive(false)}
+      onFocus={() => setActive(true)} onBlur={() => setActive(false)} onSelect={() => setActive(true)}>
+      <Icon name="settings-gear" size="small" />
+      <span>{label}</span>
+      <Show when={active()}><span class="ms-auto ps-3 text-xs text-v2-text-text-muted">Still under beta</span></Show>
+    </Menu.Item>
+  }
   const openSettings = useSettingsDialog()
-  const openNotifications = useSettingsDialog("notifications")
   const dialog = useDialog()
   const location = useLocation()
   const mobile = createMediaQuery("(max-width: 767px)")
@@ -660,7 +666,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                 class="flex h-7 shrink-0 items-center gap-2 rounded-[6px] px-2 text-[13px] leading-4 text-v2-text-text-faint hover:bg-v2-background-bg-layer-02 focus-visible:outline-none focus-visible:bg-v2-background-bg-layer-02"
                                 onClick={() => {
                                   closeMobileTabs()
-                                  platform.openExternal(import.meta.env.AWMATE_BUILD === "true" ? "mailto:support@nxtgensec.org" : "https://opencode.ai/desktop-feedback")
+                                  platform.openExternal(import.meta.env.AWMATE_BUILD === "true" ? "https://awmate.nxtgensec.org" : "https://opencode.ai/desktop-feedback")
                                 }}
                               >
                                 <Icon name="help" size="small" />
@@ -739,20 +745,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                             </Show>
                             {/* Modified for AWMate: sidebar header and chat shortcut. */}
                             <div class="mb-2 flex h-10 w-full shrink-0 items-center gap-1 px-1">
-                              <Menu appearance="standard" placement="bottom-start" gutter={4} modal={false}>
-                                <Menu.Trigger type="button" class="me-auto flex min-w-0 items-center gap-1 rounded-md px-1 py-1 text-[17px] font-semibold hover:bg-v2-background-bg-layer-02">
-                                  <span class="truncate">AWMate</span>
-                                  <Icon name="chevron-down" size="small" />
-                                </Menu.Trigger>
-                                <Menu.Portal>
-                                  <Menu.Content>
-                                    <Menu.Item onSelect={showSettingsBeta}>{language.t("command.settings.open")}</Menu.Item>
-                                  </Menu.Content>
-                                </Menu.Portal>
-                              </Menu>
-                              <IconButton type="button" size="large" variant="ghost-muted"
-                                aria-label={language.t("settings.tab.notifications")} title={language.t("settings.tab.notifications")}
-                                icon={<Icon name="notifications" />} onClick={openNotifications} />
+                              <span class="me-auto truncate px-1 text-[17px] font-semibold">AWMate</span>
                               <div class="w-7 shrink-0">{searchButton(true)}</div>
                             </div>
                               <RecentlyClosedTabsMenu
@@ -860,12 +853,9 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                         </div>
                                       </Show>
                                       <Menu.Separator />
-                                      <Menu.Item onSelect={showSettingsBeta}>
-                                        <Icon name="settings-gear" size="small" />
-                                        {language.t("sidebar.settings")}
-                                      </Menu.Item>
+                                      {betaSettings(language.t("sidebar.settings"))}
                                       <Menu.Item
-                                        onSelect={() => platform.openExternal(import.meta.env.AWMATE_BUILD === "true" ? "mailto:support@nxtgensec.org" : "https://opencode.ai/desktop-feedback")}
+                                        onSelect={() => platform.openExternal(import.meta.env.AWMATE_BUILD === "true" ? "https://awmate.nxtgensec.org" : "https://opencode.ai/desktop-feedback")}
                                       >
                                         <Icon name="help" size="small" />
                                         {language.t("sidebar.help")}

@@ -22,6 +22,7 @@ export const api: ElectronAPI = {
   reconnectService: (signal) => cancellable("AppReconnectService", undefined, signal),
   awmateAuthStatus: () => invoke("AppAWMateAuthStatus"),
   awmateAuthSignIn: () => invoke("AppAWMateAuthSignIn"),
+  awmateClaimCredit: () => invoke("AppAWMateClaimCredit"),
   awmateAuthSignOut: () => invoke("AppAWMateAuthSignOut"),
   onSidecarChanged: (cb) => listen("SidecarChanged", (event) => cb({ url: event.url })),
   readyDeepLinks: () => send("AppReadyDeepLinks"),

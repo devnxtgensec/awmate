@@ -266,6 +266,8 @@ export const layer = Layer.effect(
     >(kind: SessionRequestKind, input: Input, shape: (draft: SessionRequest, tools: Definitions) => Effect.Effect<S>) {
       const session = input.session
       const model = input.model
+      if (process.env.AWMATE_RUNTIME_ROOT && model.ref.providerID !== "awmate")
+        return yield* Effect.die(new Error("Select an AWMate Gateway model to continue."))
       const scope = { sessionID: session.id, agent: input.agent, model: model.ref, kind }
       const tools = input.tools ?? {
         definitions: [],

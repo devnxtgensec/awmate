@@ -9,3 +9,4 @@ This release also includes the accumulated desktop account, access refresh, side
 ## November 11 desktop branding and sidebar update
 
 Updated the desktop product name, support links, window and installer artwork, and new-chat logo for AWMate. The sidebar now groups the AWMate menu, notification settings, and search above New chat and Projects. Settings in the AWMate menu and account menu displays “Still under beta.” The Windows release workflow builds the installer, ZIP, and updater manifest from main.
+Public Windows build: Google sign-in includes AWMate Gateway, $1 per India calendar day and one optional $1 claim. Includes the bundled restricted runtime, sidebar actions, branding and Aura theme.

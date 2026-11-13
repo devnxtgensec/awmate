@@ -51,6 +51,7 @@ export function Composer(props: {
     const preview = props.model.model.preview
     const label = preview ? preview.label : props.model.model.label
 
+    if (import.meta.env.AWMATE_BUILD === "true" && props.model.model.selection.key()?.providerID === "awmate") return { model: label?.model ?? modelName() }
     if (label) return label
 
     return { provider: preview ? preview.provider : props.model.model.providerName, model: modelName() }
@@ -70,6 +71,10 @@ export function Composer(props: {
         exitShellKeybind={[formatKeybind("esc", language.t)]}
         suggestionBoundary={props.suggestionBoundary}
         modelControl={
+          <>
+          <Show when={import.meta.env.AWMATE_BUILD === "true"}>
+            <span class="truncate px-1 text-xs text-v2-text-text-muted">AWMate Gateway</span>
+          </Show>
           <ComposerModelControl
             loading={props.model.model.loading}
             preview={!!props.model.model.preview}
@@ -81,6 +86,7 @@ export function Composer(props: {
             onClose={props.model.restoreFocus}
             onUnpaidClick={() => dialog.show(() => <DialogSelectModelUnpaid model={props.model.model.selection} />)}
           />
+          </>
         }
       />
     </div>
@@ -104,6 +110,11 @@ function ComposerModelControl(props: {
   const dialog = useDialog()
 
   const open = (detail: number) => {
+    const provider = props.model.key()?.providerID
+    if (import.meta.env.AWMATE_BUILD === "true" && (provider === "awmate" || provider === "opencode")) {
+      void dialog.show(() => <DialogSelectModel provider={provider} model={props.model} />, props.onClose)
+      return
+    }
     if (!props.paid) return props.onUnpaidClick()
     // A pointer open keeps focus in the composer, so the dialog returns it to the caret. A keyboard open
     // (a click with no pointer presses) returns focus to this trigger instead of moving it to the editor.

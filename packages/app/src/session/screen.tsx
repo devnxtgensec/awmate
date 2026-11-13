@@ -264,6 +264,21 @@ function SessionScreenContent(props: {
   }
 
   const platform = usePlatform()
+  const dailyCreditError = createMemo(() => {
+    const message = session.history.messages().at(-1)
+    if (!platform.awmateClaimCredit || !message || !("error" in message)) return
+    if (/(?:AWMate|NxtGenSec) Gateway daily limit reached/.test(JSON.stringify(message.error ?? ""))) return message.id
+  })
+  const [claim, setClaim] = createSignal<{ id: string; text: string; pending: boolean }>()
+  async function requestCredit(id: string) {
+    if (claim()?.pending || !platform.awmateClaimCredit) return
+    setClaim({ id, text: "Claiming…", pending: true })
+    try {
+      setClaim({ id, text: await platform.awmateClaimCredit(), pending: false })
+    } catch {
+      setClaim({ id, text: "Could not reach the gateway. Try again.", pending: false })
+    }
+  }
   const [headerGap, setHeaderGap] = createSignal<HTMLElement>()
 
   const registerHeaderGap = (gap: HTMLElement) => {
@@ -375,6 +390,15 @@ function SessionScreenContent(props: {
           />
         </div>
       </Show>
+      <Show when={dailyCreditError()}>{id => (
+        <section class="mx-4 my-2 rounded-lg border border-v2-border-border-muted p-3" aria-label="AWMate Gateway credit">
+          <strong>AWMate Gateway daily limit reached</strong>
+          <p role="status">{claim()?.id === id() ? claim()?.text : "Would you like to claim an extra $1 for today?"}</p>
+          <Show when={claim()?.id !== id() || !claim()?.text.startsWith("Extra $1 claimed")}>
+            <button class="rounded-md px-3 py-1 font-semibold hover:bg-v2-background-bg-layer-02" disabled={claim()?.pending} onClick={() => requestCredit(id())}>Claim now</button>
+          </Show>
+        </section>
+      )}</Show>
       {/* Surface query errors without suspending session metadata while messages load. */}
       <Show when={timeline.resource.error}>
         {(error) => {

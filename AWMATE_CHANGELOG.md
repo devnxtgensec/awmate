@@ -91,3 +91,7 @@ This file records AWMate-specific changes included in pushes so maintainers can 
 ## Gateway model context windows
 
 Desktop advertises 1,048,576 tokens for DeepSeek V4.1 Flash 1017 and GLM-5.3 Flash, and 262,144 for Gemma 4. These limits apply to AWMate Gateway.
+
+## DeepSeek desktop context adjustment
+
+AWMate Gateway desktop chats now use a 200,000-token context budget for DeepSeek V4.1 Flash 1017. GLM-5.3 Flash retains its 1,048,576-token window and Gemma 4 retains 262,144.

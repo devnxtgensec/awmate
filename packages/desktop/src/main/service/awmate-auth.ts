@@ -80,11 +80,11 @@ export async function prepareGateway() {
   const result = (await response.json()) as { account: Account }
   appliedPermissions = permissions(result.account)
   if (result.account.desktopAccessStatus !== "approved") return previous
-  // Modified for AWMate: context limits served by Sarvam through our gateway.
+  // Modified for AWMate: desktop context budgets for AWMate Gateway models.
   const contextLimits: Record<string, number> = {
     gemma4: 262_144,
     "glm5.3-flash": 1_048_576,
-    "deepseekv4.1-flash-1017": 1_048_576,
+    "deepseekv4.1-flash-1017": 200_000,
   }
   const models = result.account.models.length ? result.account.models : ["glm5.3-flash", "deepseekv4.1-flash-1017", "gemma4", "sarvam-105b"]
   process.env.AWMATE_GATEWAY_SESSION = current

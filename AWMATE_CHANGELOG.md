@@ -95,3 +95,7 @@ Desktop advertises 1,048,576 tokens for DeepSeek V4.1 Flash 1017 and GLM-5.3 Fla
 ## DeepSeek desktop context adjustment
 
 AWMate Gateway desktop chats now use a 200,000-token context budget for DeepSeek V4.1 Flash 1017. GLM-5.3 Flash retains its 1,048,576-token window and Gemma 4 retains 262,144.
+
+## Direct AWS gateway pilot
+
+The desktop selects the AWS streaming endpoint when the authenticated platform session enables awsGateway. Existing accounts keep their platform route until opted in.

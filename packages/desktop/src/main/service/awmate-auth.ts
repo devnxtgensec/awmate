@@ -7,7 +7,7 @@ const tokenPath = () => path.join(app.getPath("userData"), "awmate-account.bin")
 type LoginAttempt = { controller: AbortController; code?: string }
 let activeLogin: LoginAttempt | undefined
 
-export type Account = { email: string; name: string; desktopAccessStatus: string; gatewayEnabled: boolean; opencodeEnabled: boolean; models: string[] }
+export type Account = { email: string; name: string; desktopAccessStatus: string; awsGateway?: boolean; gatewayEnabled: boolean; opencodeEnabled: boolean; models: string[] }
 
 export function clearGateway() {
   if (process.env.AWMATE_DESKTOP_GATEWAY_CONFIG !== "1") return false
@@ -61,7 +61,7 @@ export async function status() {
 
 let appliedPermissions = ""
 function permissions(account: Account | null) {
-  return JSON.stringify(account && [account.email, account.desktopAccessStatus, account.opencodeEnabled, account.gatewayEnabled, account.models])
+  return JSON.stringify(account && [account.email, account.desktopAccessStatus, account.opencodeEnabled, account.gatewayEnabled, account.awsGateway, account.models])
 }
 export async function refreshPermissions(account: Account | null) {
   if (permissions(account) === appliedPermissions) return false
@@ -96,7 +96,7 @@ export async function prepareGateway() {
         package: "aisdk:@ai-sdk/openai-compatible",
         env: ["AWMATE_GATEWAY_SESSION"],
         settings: {
-          baseURL: `${platformURL}/api/gateway/v1`,
+          baseURL: result.account.awsGateway ? "https://gateway.nxtgensec.org/awmate/v1" : `${platformURL}/api/gateway/v1`,
           apiKey: "{env:AWMATE_GATEWAY_SESSION}",
         },
         models: Object.fromEntries(models.map((id) => [
@@ -190,3 +190,5 @@ export async function signOut() {
     signal: AbortSignal.timeout(10_000),
   }).catch(() => undefined)
 }
+
+

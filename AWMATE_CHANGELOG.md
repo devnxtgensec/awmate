@@ -87,3 +87,7 @@ This file records AWMate-specific changes included in pushes so maintainers can 
 - Updated the local Bun installation from `1.4.2` to the repository-required `1.4.4` so the pre-push hook could run.
 - This Windows checkout cannot create tracked symlinks without symlink privilege. For the pre-push checks, `packages/app/src/custom-elements.d.ts` was temporarily materialized from its symlink target and then restored; that temporary file was not committed.
 - The pre-push lint and type-check completed successfully. Lint emitted warnings; type-check reported no errors.
+
+## Gateway model context windows
+
+Desktop advertises 1,048,576 tokens for DeepSeek V4.1 Flash 1017 and GLM-5.3 Flash, and 262,144 for Gemma 4. These limits apply to AWMate Gateway.

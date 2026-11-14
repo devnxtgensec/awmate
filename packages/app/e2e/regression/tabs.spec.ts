@@ -1682,6 +1682,7 @@ test("the Windows titlebar menu pastes through the desktop edit action", async (
 // "Modified for AWMate": cover project folders without duplicate tab rows, menubar spacing, Home removal and account actions.
 test("the Windows titlebar organizes project threads and exposes account actions", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 })
+
   const workspace = await mockWorkspace(page, {
     name: "AWMate",
     sessions: [
@@ -1695,6 +1696,7 @@ test("the Windows titlebar organizes project threads and exposes account actions
       },
     },
   })
+
   await page.goto(
     `/e2e/utils/windows-menu.html?${new URLSearchParams({ server: SERVER, path: sessionHref(workspace.sessions[0].id) })}`,
   )
@@ -1718,10 +1720,12 @@ test("the Windows titlebar organizes project threads and exposes account actions
   await page.getByRole("button", { name: "File", exact: true }).click()
   const newWindow = page.getByRole("menuitem", { name: /New Window/ })
   await expect(newWindow).toBeVisible()
+
   const [label, shortcut] = await Promise.all([
     newWindow.locator('[data-slot="menu-v2-item-content"]').boundingBox(),
     newWindow.locator('[data-slot="menu-v2-item-shortcut"]').boundingBox(),
   ])
+
   if (!label || !shortcut) throw new Error("File menu shortcut layout is not rendered")
   expect(label.x + label.width).toBeLessThanOrEqual(shortcut.x)
 })

@@ -175,6 +175,7 @@ export function createComposerModelSelection(input: {
     const gatewayModels = providers.all().get("awmate")?.models
     const gatewayID = gatewayModels?.["glm5.3-flash"]?.id ?? Object.values(gatewayModels ?? {})[0]?.id
     const gatewayDefault = import.meta.env.AWMATE_BUILD === "true" && gatewayID ? {providerID:"awmate",modelID:gatewayID} : undefined
+
     return [prompt.model.current(), input.agent()?.model, gatewayDefault, configuredModel(), recent(), fallback()].find(
       (item): item is ModelKey => !!item && valid(item),
     )

@@ -133,12 +133,14 @@ function AWMateAccessGate(props: ParentProps) {
   const language = useLanguage()
   // Modified for AWMate: the renderer build injects the string "true" for AWMate builds.
   const required = import.meta.env.AWMATE_BUILD === "true"
+
   const [state, setState] = createStore({
     phase: required ? "checking" : "approved",
     busy: false,
     message: "",
     secondsRemaining: 60,
   })
+
   let attempt = 0
   let signInTimer: number | undefined
   let signInCountdown: number | undefined
@@ -146,9 +148,11 @@ function AWMateAccessGate(props: ParentProps) {
   const check = async () => {
     if (!required || state.busy) return
     const current = ++attempt
+
     // Modified for AWMate: background refresh keeps the workspace mounted.
     try {
       const account = await platform.awmateAuthStatus?.()
+
       if (current !== attempt) return
       setState({ phase: account ? "approved" : "signed-out", message: "" })
     } catch (error) {
@@ -180,16 +184,21 @@ function AWMateAccessGate(props: ParentProps) {
         message: language.t("awmate.auth.timeout"),
       })
     }, 60_000)
+
     try {
       if (!platform.awmateAuthSignIn) throw new Error(language.t("awmate.auth.unavailable"))
       await platform.awmateAuthSignIn()
+
       if (!(await platform.awmateAuthStatus?.())) throw new Error(language.t("awmate.auth.notApproved"))
+
       if (current === attempt) setState({ phase: "approved", busy: false, message: "" })
     } catch (error) {
       if (current === attempt)
         setState({
           phase: "signed-out",
           busy: false,
+          // SAFETY: A rejected promise can carry a string; anything else falls back to the localized message.
+          // oxlint-disable-next-line anti-slop/no-runtime-typeof -- see SAFETY above
           message: error instanceof Error ? error.message : typeof error === "string" ? error : language.t("awmate.auth.unavailable"),
         })
     } finally {

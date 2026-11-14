@@ -25,6 +25,7 @@ export default function BetaNotesPage() {
       </div>
     </section></div>
   </>
+
   return (
     <BetaNotesView
       embedded={Option.getOrUndefined(decodeEmbeddedNotes(import.meta.env.OPENCODE_BETA_NOTES))}

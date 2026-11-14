@@ -144,13 +144,17 @@ export function WindowsAppMenu(props: {
                       if (entry.type === "separator") return <Menu.Separator />
 
                       const label = () => (entry.labelKey ? language.t(entry.labelKey) : "")
+
                       if (import.meta.env.AWMATE_BUILD === "true" && (menu.id === "help" || entry.command === "settings.open")) {
                         if (entry.labelKey === "desktop.menu.documentation")
                           return <DesktopMenuItem label={label()} onSelect={() => props.platform.openExternal("https://awmate.nxtgensec.org/docs")} />
+
                         return <Menu.Item closeOnSelect={false}><span>{label()}</span><span class="ms-auto ps-3 text-xs text-v2-text-text-muted">Beta</span></Menu.Item>
                       }
+
                       const keybind = () =>
                         entry.command ? props.command.keybind(entry.command) : entry.accelerator?.windows
+
                       const disabled = () => (entry.command ? commandDisabled(entry.command) : false)
 
                       return (

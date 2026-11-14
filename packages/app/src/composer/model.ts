@@ -305,20 +305,28 @@ export function createComposerModel(adapter: ComposerAdapter, options?: { queue?
     // "Modified for AWMate": authenticate desktop users before sending prompts or quote replies.
     authenticate: async () => {
       if (!platform.awmateAuthStatus || !platform.awmateAuthSignIn) return true
+
       try {
         const account = await platform.awmateAuthStatus()
+
         if (account?.desktopAccessStatus === "approved") {
           const provider = adapter.controls().model.selection.key()?.providerID
+
           if (provider !== "awmate" || !account.gatewayEnabled) {
             showToast({ title: "Gateway access is disabled for this account." })
+
             return false
           }
+
           return true
         }
+
         if (account) {
           showToast({ title: "Desktop access is not approved", description: "Contact support@nxtgensec.org for further details." })
+
           return false
         }
+
         showToast({
           title: "Sign in to AWMate before sending a query",
           description: "Complete Google sign-in in the browser, then send your query again.",
@@ -330,6 +338,7 @@ export function createComposerModel(adapter: ComposerAdapter, options?: { queue?
           description: error instanceof Error ? error.message : String(error),
         })
       }
+
       return false
     },
     delivery: (alternate) => {

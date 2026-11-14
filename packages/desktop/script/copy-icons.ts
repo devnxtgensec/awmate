@@ -14,4 +14,5 @@ await $`rm -rf ${dest}`
 await $`cp -R ${src} ${dest}`
 
 if (process.env.AWMATE_BUILD === "1") await $`cp ./icons/awmate/* ${dest}/`
+
 console.log(`Copied ${channel} icons from ${src} to ${dest}`)

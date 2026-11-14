@@ -60,13 +60,21 @@ const setup: Plugin.MainSetup = async (ctx) => {
 
   publish.changed = () => provider.changed()
 
-  // Modified for AWMate: apply releases at startup and offer updates while running.
+  // Modified for AWMate: download a release in the background and let it install when the
+  // user quits, so a running session is never interrupted by a restart. The titlebar pill
+  // appears as soon as the download is ready, and clicking it still restarts on demand.
   if (enabled && process.platform === "win32" && app.getName() === "AWMate") {
-    runFork(Effect.gen(function* () {
-      const state = yield* updater.check
-      if (state.status === "ready" || state.status === "download-required") yield* updater.install
-    }).pipe(Effect.catch((error) => Effect.logWarning("Startup update failed", { message: error.message }))))
-    const timer = setInterval(() => runFork(updater.check), 30 * 60_000)
+    // The machine checks once at startup. Poll more often than its ten-minute loop so a
+    // release reaches the titlebar pill quickly during a long session.
+    const check = updater.check.pipe(
+      Effect.tap((state) =>
+        state.status === "error"
+          ? Effect.logWarning("Update check failed", { message: state.message })
+          : Effect.void,
+      ),
+    )
+
+    const timer = setInterval(() => runFork(check), 5 * 60_000)
     ctx.onCleanup(() => clearInterval(timer))
   }
 

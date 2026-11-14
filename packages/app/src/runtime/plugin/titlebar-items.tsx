@@ -55,7 +55,7 @@ function TitlebarItemButton(props: { item: TitlebarItem; vertical?: boolean }) {
       class="group relative shrink-0 rounded-full bg-v2-background-bg-deep transition-[width] duration-150 ease-out [interpolate-size:allow-keywords] hover:z-30 hover:w-fit focus-within:z-30 focus-within:w-fit motion-reduce:transition-none"
       classList={{
         "h-7 w-7 self-start": props.vertical,
-        "me-3 h-5 w-5": !props.vertical,
+        "me-3 h-6 w-6": !props.vertical,
       }}
     >
       <button
@@ -71,7 +71,7 @@ function TitlebarItemButton(props: { item: TitlebarItem; vertical?: boolean }) {
         <Show when={!props.vertical}>{label()}</Show>
         <span
           class="flex shrink-0 items-center justify-center"
-          classList={{ "size-7": props.vertical, "size-5": !props.vertical }}
+          classList={{ "size-7": props.vertical, "size-6": !props.vertical }}
         >
           <Show
             when={!props.item.busy}
@@ -80,7 +80,7 @@ function TitlebarItemButton(props: { item: TitlebarItem; vertical?: boolean }) {
             <Show
               when={props.item.icon}
               fallback={
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                   <path d="M7 11V3M3.5 7.63128L7 11L10.5 7.63128" stroke="currentColor" />
                 </svg>
               }

@@ -119,10 +119,13 @@ const runtime = Layer.effect(
 
     const openUrl = (event: Event, url: string) => {
       event.preventDefault()
+
       if (isAWMateAuthReturn(url)) {
         focusWindow(getLastFocusedWindow())
+
         return
       }
+
       runFork(Effect.logInfo("deep link received via open-url", { url }))
       deepLinks.receive([url])
     }
@@ -204,7 +207,9 @@ const runtime = Layer.effect(
         }
 
         const restored = restoreWindows()
+
         if (process.argv.some(isAWMateAuthReturn)) focusWindow(getLastFocusedWindow())
+
         return restored
       },
     })

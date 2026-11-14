@@ -48,6 +48,7 @@ export const preferApplicationEnvironment = Effect.gen(function* () {
   yield* Effect.sync(() => {
     const gatewayConfig = process.env.AWMATE_DESKTOP_GATEWAY_CONFIG === "1" ? process.env.OPENCODE_CONFIG_CONTENT : undefined
     const runtimeRoot = process.env.AWMATE_RUNTIME_ROOT
+
     if (!shellEnv?.XDG_STATE_HOME) delete process.env.XDG_STATE_HOME
     Object.assign(process.env, {
       ...shellEnv,
@@ -55,8 +56,10 @@ export const preferApplicationEnvironment = Effect.gen(function* () {
       OPENCODE_EXPERIMENTAL_FILEWATCHER: "true",
       OPENCODE_CLIENT: "desktop",
     })
+
     if (import.meta.env.AWMATE_BUILD === true && runtimeRoot) {
       configureAWMateStorage(runtimeRoot)
+
       if (gatewayConfig) process.env.OPENCODE_CONFIG_CONTENT = gatewayConfig
     }
   })
@@ -72,6 +75,7 @@ export const prepareDesktop = Effect.gen(function* () {
     const args = process.platform === "win32" && process.defaultApp ? [app.getAppPath()] : []
     app.setAsDefaultProtocolClient(scheme, process.execPath, args)
   }
+
   const runFork = Effect.runForkWith(yield* Effect.context())
   setProtocolReporter((level, message, data) =>
     runFork(scoped("protocol", level === "error" ? Effect.logError(message, data) : Effect.logWarning(message, data))),

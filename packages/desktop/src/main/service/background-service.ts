@@ -45,6 +45,7 @@ export const layer = Layer.effect(
       restart: Effect.gen(function* () {
         const setup = yield* prepare("reconnect").pipe(Effect.provide(context))
         yield* Effect.promise(() => setup.client.Service.stop({ file: setup.file, pty: "handoff" }))
+
         return yield* machine.reconnect
       }),
     })
@@ -111,8 +112,10 @@ const prepare = Effect.fn("BackgroundService.prepare")(function* (mode: Backgrou
   yield* Effect.logInfo("starting v2 background service")
   const path = yield* Path.Path
   const desktopCli = yield* DesktopCli.Service
+
   const isolated =
     import.meta.env.AWMATE_BUILD === true || (!app.isPackaged && process.env.OPENCODE_DESKTOP_ISOLATED_SERVER === "1")
+
   const cli = yield* desktopCli.resolve
   const version = serviceVersion({ channel: CHANNEL, isolated, mode, version: cli.version })
 

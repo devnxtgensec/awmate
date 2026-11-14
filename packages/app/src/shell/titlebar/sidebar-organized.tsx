@@ -380,19 +380,25 @@ function ProjectRow(props: {
   const dialog = useDialog()
   const [exporting, setExporting] = createStore({ busy: false })
   const context = () => global.serverCtx(ServerConnection.key(props.server))
+
   async function exportProject() {
     const ctx = context()
+
     if (!ctx || exporting.busy || !platform.saveFile) return
     const project = props.project
     setExporting("busy", true)
+
     try {
       const sessions = []
       let cursor: string | undefined
+
       do {
         const page = await ctx.sdk.api.session.list({ project: project.id, limit: 100, cursor })
+
         for (const session of page.data) sessions.push(await fetchSessionExport({ api: ctx.sdk.api, sessionID: session.id }))
         cursor = page.cursor.next ?? undefined
       } while (cursor)
+
       await platform.saveFile({ defaultPath: sessionExportFilename({ id: project.id, title: displayName(project) }) }, JSON.stringify({ project, sessions }, null, 2))
     } catch (error) {
       showToast({ title: "Project export failed", description: String(error) })
@@ -460,6 +466,7 @@ function ProjectRow(props: {
               <Menu.Content>
                 <Menu.Item onSelect={() => dialog.show(() => <RenameDialog title={displayName(props.project)} heading="Rename project" onRename={async name => {
                     const ctx = context()
+
                     if (!ctx) throw new Error("Project server unavailable")
                     ctx.sync.project.update(await ctx.sdk.api.project.update({ projectID: props.project.id, name }))
                   }} />)}>Rename</Menu.Item>

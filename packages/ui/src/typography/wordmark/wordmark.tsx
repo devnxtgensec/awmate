@@ -7,6 +7,7 @@ export function Wordmark(
   const maskGradient = createUniqueId()
 
   if (import.meta.env.AWMATE_BUILD === "true") return <img src="./awmate-logo.png" alt="AWMate" class={props.class} style={{ "object-fit": "contain" }} />
+
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"

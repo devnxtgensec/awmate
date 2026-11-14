@@ -74,11 +74,14 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
   const command = useCommand()
   const language = useLanguage()
   const settings = useSettings()
+
   const accountInitials = () => {
     const account = awmateAccount()
     const words = (account?.name.trim() || account?.email.split("@")[0] || "AW").split(/\s+/u)
+
     return (words.length > 1 ? [...words[0]][0] + [...words[words.length - 1]][0] : [...words[0]].slice(0, 2).join("")).toLocaleUpperCase()
   }
+
   const [awmateAccount, setAWMateAccount] = createSignal<{ email: string; name: string; gatewayEnabled: boolean }>()
   const [awmateAuthBusy, setAWMateAuthBusy] = createSignal(false)
   const [awmateAuthError, setAWMateAuthError] = createSignal("")
@@ -93,6 +96,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
   // Modified for AWMate: both sidebar Settings entries share the beta notice.
   const betaSettings = (label: string) => {
     const [active, setActive] = createSignal(false)
+
     return <Menu.Item closeOnSelect={false} onPointerEnter={() => setActive(true)} onPointerLeave={() => setActive(false)}
       onFocus={() => setActive(true)} onBlur={() => setActive(false)} onSelect={() => setActive(true)}>
       <Icon name="settings-gear" size="small" />
@@ -100,6 +104,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
       <Show when={active()}><span class="ms-auto ps-3 text-xs text-v2-text-text-muted">Still under beta</span></Show>
     </Menu.Item>
   }
+
   const openSettings = useSettingsDialog()
   const dialog = useDialog()
   const location = useLocation()

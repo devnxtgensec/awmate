@@ -167,6 +167,7 @@ export function NewSessionWordmark(props: {
       </div>
     )
   }
+
   // Read once: the lodger stays mounted after handing over to the pin board, and can be dragged back into the hole.
   const lodger = selectWordmarkLodger(props.state())
   let box!: HTMLDivElement

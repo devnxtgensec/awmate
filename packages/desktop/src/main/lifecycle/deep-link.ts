@@ -16,6 +16,7 @@ export function consoleReturnWindow(value: string) {
 export function isAWMateAuthReturn(value: string) {
   try {
     const url = new URL(value)
+
     // Modified for AWMate: recognize the development callback separately from the installed app callback.
     return (url.protocol === "awmate:" || url.protocol === "awmate-local:") && url.hostname === "auth" && url.pathname === "/complete"
   } catch {

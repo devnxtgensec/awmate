@@ -214,6 +214,7 @@ const getBase = (appId: string): Configuration => {
 export function getConfig() {
   const channel = resolveChannel()
   const awmate = process.env.AWMATE_BUILD === "1"
+
   if (awmate && channel !== "dev") throw new Error("Use the AWMate release channel (dev) when packaging AWMate")
   const appId = awmate ? "ai.awmate.desktop" : APP_IDS[channel]
   const base = getBase(appId)

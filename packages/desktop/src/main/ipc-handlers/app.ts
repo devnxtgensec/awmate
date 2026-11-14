@@ -29,7 +29,9 @@ export const appHandlers = AppRpcs.toLayer(
       AppReconnectService: () => background.reconnect.pipe(Effect.map(SidecarCredentials.ready)),
       AppAWMateAuthStatus: () => promise(async () => {
         const account = await status()
+
         if (await refreshPermissions(account)) await Effect.runPromise(background.restart)
+
         return account
       }),
       AppAWMateAuthSignIn: () =>
@@ -38,7 +40,9 @@ export const appHandlers = AppRpcs.toLayer(
             const account = await signIn(async (url) => {
               if (!(await Effect.runPromise(openExternalURL(url)))) throw new Error("Could not open the sign-in page")
             })
+
             if (await prepareGateway()) await Effect.runPromise(background.restart)
+
             return account
           },
           catch: (error) => (error instanceof Error ? error.message : String(error)),
@@ -47,6 +51,7 @@ export const appHandlers = AppRpcs.toLayer(
       AppAWMateAuthSignOut: () =>
         promise(async () => {
           await signOut()
+
           if (clearGateway()) await Effect.runPromise(background.restart)
         }),
       AppReadyDeepLinks: (_request, context) =>

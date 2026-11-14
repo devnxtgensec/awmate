@@ -4,23 +4,29 @@ import path from "node:path"
 import { startRelayProxy, stopRelayProxy } from "./awmate-relay-proxy"
 
 const platformURL = "https://awmate.nxtgensec.org"
+
 const tokenPath = () => path.join(app.getPath("userData"), "awmate-account.bin")
+
 type LoginAttempt = { controller: AbortController; code?: string }
+
 let activeLogin: LoginAttempt | undefined
 
 export type Account = { email: string; name: string; desktopAccessStatus: string; awsGateway?: boolean; gatewayEnabled: boolean; opencodeEnabled: boolean; models: string[] }
 
 export function clearGateway() {
   stopRelayProxy()
+
   if (process.env.AWMATE_DESKTOP_GATEWAY_CONFIG !== "1") return false
   delete process.env.OPENCODE_CONFIG_CONTENT
   delete process.env.AWMATE_GATEWAY_SESSION
   delete process.env.AWMATE_DESKTOP_GATEWAY_CONFIG
+
   return true
 }
 
 async function token() {
   if (!safeStorage.isEncryptionAvailable()) throw new Error("OS secure storage is unavailable")
+
   try {
     return safeStorage.decryptString(await readFile(tokenPath()))
   } catch {
@@ -30,75 +36,116 @@ async function token() {
 
 export async function claimDailyCredit() {
   const current = await token()
+
   if (!current) return "Sign in to AWMate to claim credit."
+
   const response = await fetch(`${platformURL}/api/daily-bonus`, {
     method: "POST",
     headers: { Authorization: `Bearer ${current}` },
     signal: AbortSignal.timeout(10000),
   })
+
+  // SAFETY: The platform's daily-bonus endpoint returns a JSON object with optional message/error strings.
   const result = await response.json() as { message?: string; error?: string }
+
   return response.ok ? "Extra $1 claimed. Send your message again." : result.error ?? "Claim failed. Try again."
 }
 
 export async function status() {
   const current = await token()
+
   if (!current) return null
+
   const response = await fetch(`${platformURL}/api/auth/desktop/session`, {
     headers: { "X-AWMate-Access": "2", Authorization: `Bearer ${current}` },
     signal: AbortSignal.timeout(10_000),
   })
+
   if (response.status === 401) {
     await rm(tokenPath(), { force: true })
+
     return null
   }
+
   if (response.status === 403) {
     await rm(tokenPath(), { force: true })
+    // SAFETY: The platform's session endpoint returns a JSON error object on 403.
     const result = (await response.json().catch(() => undefined)) as { error?: string } | undefined
     throw new Error(result?.error ?? "AWMate desktop access is not approved.")
   }
+
   if (!response.ok) throw new Error("Could not check the AWMate account")
+  // SAFETY: A successful session response is the platform's account payload.
   const result = (await response.json()) as { account: Account }
+
   return result.account
 }
 
 let appliedPermissions = ""
+
 function permissions(account: Account | null) {
   return JSON.stringify(account && [account.email, account.desktopAccessStatus, account.opencodeEnabled, account.gatewayEnabled, account.awsGateway, account.models])
 }
+
 export async function refreshPermissions(account: Account | null) {
   if (permissions(account) === appliedPermissions) return false
-  if (!account) { appliedPermissions = permissions(null); return clearGateway() }
+
+  if (!account) {
+    appliedPermissions = permissions(null)
+
+    return clearGateway()
+  }
+
   return prepareGateway()
 }
+
 export async function prepareGateway() {
   const previous = clearGateway()
   const current = await token()
+
   if (!current || process.env.OPENCODE_CONFIG_CONTENT) return previous
+
   const response = await fetch(`${platformURL}/api/auth/desktop/session`, {
     headers: { "X-AWMate-Access": "2", Authorization: `Bearer ${current}` },
     signal: AbortSignal.timeout(10_000),
   }).catch(() => undefined)
+
   if (!response?.ok) return previous
+  // SAFETY: A successful session response is the platform's account payload.
   const result = (await response.json()) as { account: Account }
   appliedPermissions = permissions(result.account)
+
   if (result.account.desktopAccessStatus !== "approved") return previous
+
   // Modified for AWMate: desktop context budgets for AWMate Gateway models.
-  const contextLimits: Record<string, number> = {
-    gemma4: 262_144,
-    "glm5.3-flash": 1_048_576,
-    "deepseekv4.1-flash-1017": 200_000,
+  const contextLimit = (id: string) => {
+    if (id === "gemma4") return 262_144
+
+    if (id === "glm5.3-flash" || id === "deepseekv4.1-flash-1017") return 1_048_576
+
+    return undefined
   }
+
   const models = result.account.models.length ? result.account.models : ["glm5.3-flash", "deepseekv4.1-flash-1017", "gemma4", "sarvam-105b"]
   // Opted-in accounts go through the local proxy so a relay outage falls back to
   // the Cloudflare gateway without restarting the sidecar. If the proxy cannot
   // bind, use Cloudflare directly rather than losing the gateway.
   const cloudflareBaseURL = `${platformURL}/api/gateway/v1`
+
   const baseURL = result.account.awsGateway
     ? await startRelayProxy().catch(() => cloudflareBaseURL)
     : cloudflareBaseURL
+
   process.env.AWMATE_GATEWAY_SESSION = current
+  // AWMate Gateway is the default. The OpenCode gateway is the client's built-in
+  // provider, so an account an administrator allows it for gets that provider back
+  // in the model picker; everyone else keeps AWMate only.
   process.env.OPENCODE_CONFIG_CONTENT = JSON.stringify({
-    policies: [{ action: "provider.use", resource: "*", effect: "deny" }, { action: "provider.use", resource: "awmate", effect: "allow" }],
+    policies: [
+      { action: "provider.use", resource: "*", effect: "deny" },
+      ...(result.account.gatewayEnabled ? [{ action: "provider.use", resource: "awmate", effect: "allow" }] : []),
+      ...(result.account.opencodeEnabled ? [{ action: "provider.use", resource: "opencode", effect: "allow" }] : []),
+    ],
     providers: result.account.gatewayEnabled ? {
       awmate: {
         name: "AWMate Gateway",
@@ -108,13 +155,16 @@ export async function prepareGateway() {
           baseURL,
           apiKey: "{env:AWMATE_GATEWAY_SESSION}",
         },
-        models: Object.fromEntries(models.map((id) => [
-          id, contextLimits[id] ? { name: id, limit: { context: contextLimits[id] } } : { name: id },
-        ])),
+        models: Object.fromEntries(models.map((id) => {
+          const limit = contextLimit(id)
+
+          return [id, limit ? { name: id, limit: { context: limit } } : { name: id }]
+        })),
       },
     } : {},
   })
   process.env.AWMATE_DESKTOP_GATEWAY_CONFIG = "1"
+
   return true
 }
 
@@ -130,13 +180,15 @@ async function cancelLoginCode(code: string) {
 // Modified for AWMate: cancel the outstanding poll and expire its one-time platform code before a retry.
 export async function cancelSignIn() {
   const current = activeLogin
+
   if (!current) return
   activeLogin = undefined
   current.controller.abort()
+
   if (current.code) await cancelLoginCode(current.code)
 }
 
-export async function signIn(openExternal: (url: string) => Promise<unknown>) {
+export async function signIn(openExternal: (url: string) => Promise<void>) {
   if (!safeStorage.isEncryptionAvailable()) throw new Error("OS secure storage is unavailable")
   await cancelSignIn()
   const attempt: LoginAttempt = { controller: new AbortController() }
@@ -144,6 +196,7 @@ export async function signIn(openExternal: (url: string) => Promise<unknown>) {
   const callbackScheme = app.isPackaged ? "awmate" : "awmate-local"
   const signal = () => AbortSignal.any([attempt.controller.signal, AbortSignal.timeout(10_000)])
   let completed = false
+
   try {
     const start = await fetch(`${platformURL}/api/auth/desktop/start`, {
       method: "POST",
@@ -151,9 +204,12 @@ export async function signIn(openExternal: (url: string) => Promise<unknown>) {
       body: JSON.stringify({ callbackScheme }),
       signal: signal(),
     })
+
     if (!start.ok) throw new Error("Could not start AWMate sign-in")
+    // SAFETY: A successful start response is the platform's one-time login payload.
     const login = (await start.json()) as { code: string; loginUrl: string; expiresAt: number; pollInterval: number }
     attempt.code = login.code
+
     if (attempt.controller.signal.aborted) {
       await cancelLoginCode(login.code)
       throw new Error("AWMate sign-in was canceled")
@@ -163,28 +219,38 @@ export async function signIn(openExternal: (url: string) => Promise<unknown>) {
 
     // Modified for AWMate: keep the main-process attempt bounded to the same minute shown by the sign-in UI.
     const expiresAt = Math.min(login.expiresAt * 1000, Date.now() + 60_000)
+
     while (Date.now() < expiresAt) {
       if (attempt.controller.signal.aborted) throw new Error("AWMate sign-in was canceled")
       await new Promise((resolve) => setTimeout(resolve, Math.max(login.pollInterval, 2) * 1000))
+
       const response = await fetch(`${platformURL}/api/auth/desktop/poll`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-AWMate-Access": "2" },
         body: JSON.stringify({ code: login.code }),
         signal: signal(),
       })
+
       if (response.status === 202) continue
+
       if (!response.ok) {
+        // SAFETY: A failed poll returns a JSON error object.
         const error = (await response.json().catch(() => undefined)) as { error?: string } | undefined
         throw new Error(error?.error ?? "AWMate sign-in expired or was already used")
       }
+
+      // SAFETY: A successful poll returns the access token and account payload.
       const result = (await response.json()) as { accessToken: string; account: Account }
       await writeFile(tokenPath(), safeStorage.encryptString(result.accessToken), { mode: 0o600 })
       completed = true
+
       return result.account
     }
+
     throw new Error("AWMate sign-in timed out. Please try again.")
   } finally {
     if (activeLogin === attempt) activeLogin = undefined
+
     if (!completed && attempt.code) await cancelLoginCode(attempt.code)
   }
 }
@@ -192,6 +258,7 @@ export async function signIn(openExternal: (url: string) => Promise<unknown>) {
 export async function signOut() {
   const current = await token()
   await rm(tokenPath(), { force: true })
+
   if (!current) return
   await fetch(`${platformURL}/api/auth/desktop/logout`, {
     method: "POST",

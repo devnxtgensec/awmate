@@ -27,7 +27,9 @@ export const make = Effect.fn("Updater.platform")(function* (channel: string) {
   updateClient.allowPrerelease = false
   updateClient.allowDowngrade = app.getName() !== "AWMate"
   updateClient.autoDownload = false
-  updateClient.autoInstallOnAppQuit = process.platform === "darwin"
+  // Modified for AWMate: a downloaded release installs when the user quits, so the next
+  // launch is the new version and a running session is never restarted by an update.
+  updateClient.autoInstallOnAppQuit = process.platform === "darwin" || process.platform === "win32"
   yield* Effect.logInfo("auto updater configured", {
     channel: updateClient.channel,
     allowPrerelease: updateClient.allowPrerelease,

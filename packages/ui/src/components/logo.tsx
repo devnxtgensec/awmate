@@ -2,6 +2,7 @@ import { type ComponentProps } from "solid-js"
 
 export const Mark = (props: { class?: string }) => {
   if (import.meta.env.AWMATE_BUILD === "true") return <img src="./awmate-logo.png" alt="AWMate" class={props.class} style={{ "object-fit": "contain" }} />
+
   return (
     <svg
       data-component="logo-mark"
@@ -18,6 +19,7 @@ export const Mark = (props: { class?: string }) => {
 
 export const Splash = (props: Pick<ComponentProps<"svg">, "ref" | "class">) => {
   if (import.meta.env.AWMATE_BUILD === "true") return <img src="./awmate-logo.png" alt="AWMate" class={props.class} style={{ "object-fit": "contain" }} />
+
   return (
     <svg
       ref={props.ref}
@@ -35,6 +37,7 @@ export const Splash = (props: Pick<ComponentProps<"svg">, "ref" | "class">) => {
 
 export const Logo = (props: { class?: string }) => {
   if (import.meta.env.AWMATE_BUILD === "true") return <img src="./awmate-logo.png" alt="AWMate" class={props.class} style={{ "object-fit": "contain" }} />
+
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"

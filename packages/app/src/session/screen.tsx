@@ -264,21 +264,28 @@ function SessionScreenContent(props: {
   }
 
   const platform = usePlatform()
+
   const dailyCreditError = createMemo(() => {
     const message = session.history.messages().at(-1)
+
     if (!platform.awmateClaimCredit || !message || !("error" in message)) return
+
     if (/(?:AWMate|NxtGenSec) Gateway daily limit reached/.test(JSON.stringify(message.error ?? ""))) return message.id
   })
+
   const [claim, setClaim] = createSignal<{ id: string; text: string; pending: boolean }>()
+
   async function requestCredit(id: string) {
     if (claim()?.pending || !platform.awmateClaimCredit) return
     setClaim({ id, text: "Claiming…", pending: true })
+
     try {
       setClaim({ id, text: await platform.awmateClaimCredit(), pending: false })
     } catch {
       setClaim({ id, text: "Could not reach the gateway. Try again.", pending: false })
     }
   }
+
   const [headerGap, setHeaderGap] = createSignal<HTMLElement>()
 
   const registerHeaderGap = (gap: HTMLElement) => {

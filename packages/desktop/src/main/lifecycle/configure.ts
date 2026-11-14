@@ -44,10 +44,12 @@ export function configureApplication() {
     app.commandLine.appendSwitch("enable-precise-memory-info")
 
   const testRoot = createTestRoot()
+
   if (import.meta.env.AWMATE_BUILD === true) {
     const root = testRoot ?? path.join(app.getPath("appData"), APP_ID, "runtime")
     configureAWMateStorage(root)
   }
+
   app.setPath("userData", testRoot ? path.join(testRoot, "desktop") : path.join(app.getPath("appData"), APP_ID))
 
   if (testRoot) {

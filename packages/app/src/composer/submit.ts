@@ -260,6 +260,7 @@ export function createComposerSubmit(input: ComposerSubmitInput) {
     state,
     async submit(event: globalThis.Event, options?: { alternate?: boolean }) {
       event.preventDefault()
+
       if (input.authenticate && !(await input.authenticate())) return
 
       return new Promise<void>((resolve) =>
@@ -270,6 +271,7 @@ export function createComposerSubmit(input: ComposerSubmitInput) {
       const adapter = input.adapter
 
       if (adapter.kind !== "active-session") return Promise.resolve(false)
+
       if (input.authenticate && !(await input.authenticate())) return false
       const quote = adapter.state.context.items().find((item) => item.key === key)
 

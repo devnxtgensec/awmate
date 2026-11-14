@@ -76,7 +76,9 @@ const ensure = Effect.fn("BackgroundService.ensure")(function* (mode: Background
         ...setup.cli.command,
         "serve",
         "--service",
-        ...(setup.isolated ? ["--hostname", "0.0.0.0", "--port", String(0x0c0c)] : []),
+        ...(setup.isolated
+          ? ["--hostname", "0.0.0.0", "--port", process.env.AWMATE_DESKTOP_SERVICE_PORT ?? String(0x0c0c)]
+          : []),
       ],
       onStart: (reason, previousVersion) =>
         runFork(Effect.logInfo("v2 CLI background service starting", { reason, previousVersion })),

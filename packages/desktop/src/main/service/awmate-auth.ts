@@ -1,6 +1,7 @@
 import { app, safeStorage } from "electron"
 import { readFile, rm, writeFile } from "node:fs/promises"
 import path from "node:path"
+import { startRelayProxy, stopRelayProxy } from "./awmate-relay-proxy"
 
 const platformURL = "https://awmate.nxtgensec.org"
 const tokenPath = () => path.join(app.getPath("userData"), "awmate-account.bin")
@@ -10,6 +11,7 @@ let activeLogin: LoginAttempt | undefined
 export type Account = { email: string; name: string; desktopAccessStatus: string; awsGateway?: boolean; gatewayEnabled: boolean; opencodeEnabled: boolean; models: string[] }
 
 export function clearGateway() {
+  stopRelayProxy()
   if (process.env.AWMATE_DESKTOP_GATEWAY_CONFIG !== "1") return false
   delete process.env.OPENCODE_CONFIG_CONTENT
   delete process.env.AWMATE_GATEWAY_SESSION
@@ -87,6 +89,13 @@ export async function prepareGateway() {
     "deepseekv4.1-flash-1017": 200_000,
   }
   const models = result.account.models.length ? result.account.models : ["glm5.3-flash", "deepseekv4.1-flash-1017", "gemma4", "sarvam-105b"]
+  // Opted-in accounts go through the local proxy so a relay outage falls back to
+  // the Cloudflare gateway without restarting the sidecar. If the proxy cannot
+  // bind, use Cloudflare directly rather than losing the gateway.
+  const cloudflareBaseURL = `${platformURL}/api/gateway/v1`
+  const baseURL = result.account.awsGateway
+    ? await startRelayProxy().catch(() => cloudflareBaseURL)
+    : cloudflareBaseURL
   process.env.AWMATE_GATEWAY_SESSION = current
   process.env.OPENCODE_CONFIG_CONTENT = JSON.stringify({
     policies: [{ action: "provider.use", resource: "*", effect: "deny" }, { action: "provider.use", resource: "awmate", effect: "allow" }],
@@ -96,7 +105,7 @@ export async function prepareGateway() {
         package: "aisdk:@ai-sdk/openai-compatible",
         env: ["AWMATE_GATEWAY_SESSION"],
         settings: {
-          baseURL: result.account.awsGateway ? "https://gateway.nxtgensec.org/awmate/v1" : `${platformURL}/api/gateway/v1`,
+          baseURL,
           apiKey: "{env:AWMATE_GATEWAY_SESSION}",
         },
         models: Object.fromEntries(models.map((id) => [

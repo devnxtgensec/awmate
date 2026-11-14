@@ -21,6 +21,9 @@ import {
   type ModelChipEvent,
 } from "./model-chip-machine"
 
+// Modified for AWMate: the two gateways an account can be granted.
+const isGateway = (providerID: string | undefined) => providerID === "awmate" || providerID === "opencode"
+
 export function Composer(props: {
   class?: string
   model: ComposerModel
@@ -51,11 +54,22 @@ export function Composer(props: {
     const preview = props.model.model.preview
     const label = preview ? preview.label : props.model.model.label
 
-    if (import.meta.env.AWMATE_BUILD === "true" && props.model.model.selection.key()?.providerID === "awmate") return { model: label?.model ?? modelName() }
+    // Modified for AWMate: the gateway name sits beside the chip, so the chip shows only the model.
+    if (import.meta.env.AWMATE_BUILD === "true" && isGateway(props.model.model.selection.key()?.providerID))
+      return { model: label?.model ?? modelName() }
 
     if (label) return label
 
     return { provider: preview ? preview.provider : props.model.model.providerName, model: modelName() }
+  }
+
+  // Modified for AWMate: the label follows the selected gateway instead of always reading AWMate Gateway.
+  const gatewayName = () => {
+    const preview = props.model.model.preview
+
+    if (preview?.provider) return preview.provider
+
+    return props.model.model.selection.current()?.provider.name ?? language.t("awmate.gateway.name")
   }
 
   return (
@@ -73,20 +87,20 @@ export function Composer(props: {
         suggestionBoundary={props.suggestionBoundary}
         modelControl={
           <>
-          <Show when={import.meta.env.AWMATE_BUILD === "true"}>
-            <span class="truncate px-1 text-xs text-v2-text-text-muted">AWMate Gateway</span>
-          </Show>
-          <ComposerModelControl
-            loading={props.model.model.loading}
-            preview={!!props.model.model.preview}
-            paid={props.model.model.paid}
-            title={language.t("command.model.choose")}
-            keybind={command.keybindParts("model.choose")}
-            model={props.model.model.selection}
-            label={modelLabel()}
-            onClose={props.model.restoreFocus}
-            onUnpaidClick={() => dialog.show(() => <DialogSelectModelUnpaid model={props.model.model.selection} />)}
-          />
+            <Show when={import.meta.env.AWMATE_BUILD === "true"}>
+              <span class="truncate px-1 text-xs text-v2-text-text-muted">{gatewayName()}</span>
+            </Show>
+            <ComposerModelControl
+              loading={props.model.model.loading}
+              preview={!!props.model.model.preview}
+              paid={props.model.model.paid}
+              title={language.t("command.model.choose")}
+              keybind={command.keybindParts("model.choose")}
+              model={props.model.model.selection}
+              label={modelLabel()}
+              onClose={props.model.restoreFocus}
+              onUnpaidClick={() => dialog.show(() => <DialogSelectModelUnpaid model={props.model.model.selection} />)}
+            />
           </>
         }
       />
@@ -113,8 +127,9 @@ function ComposerModelControl(props: {
   const open = (detail: number) => {
     const provider = props.model.key()?.providerID
 
-    if (import.meta.env.AWMATE_BUILD === "true" && (provider === "awmate" || provider === "opencode")) {
-      void dialog.show(() => <DialogSelectModel provider={provider} model={props.model} />, props.onClose)
+    // Modified for AWMate: both gateways are listed, so an account granted OpenCode can switch to it here.
+    if (import.meta.env.AWMATE_BUILD === "true" && isGateway(provider)) {
+      void dialog.show(() => <DialogSelectModel model={props.model} />, props.onClose)
 
       return
     }

@@ -82,7 +82,23 @@ const favoriteKeybind = parseKeybind("mod+f")
 
 const modelKey = (model: ModelItem) => `${model.provider.id}:${model.id}`
 
+// Modified for AWMate: the managed gateway leads the picker, and OpenCode follows when the account is granted it.
+const gatewayOrder = ["awmate", "opencode"]
+
 const sortModelGroups = (a: { category: string; items: ModelItem[] }, b: { category: string; items: ModelItem[] }) => {
+  if (import.meta.env.AWMATE_BUILD === "true") {
+    const aGateway = gatewayOrder.indexOf(a.category)
+    const bGateway = gatewayOrder.indexOf(b.category)
+
+    if (aGateway >= 0 || bGateway >= 0) {
+      if (aGateway < 0) return 1
+
+      if (bGateway < 0) return -1
+
+      return aGateway - bGateway
+    }
+  }
+
   const aIndex = popularProviders.indexOf(a.category)
   const bIndex = popularProviders.indexOf(b.category)
   const aPopular = aIndex >= 0

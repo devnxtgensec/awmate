@@ -312,7 +312,12 @@ export function createComposerModel(adapter: ComposerAdapter, options?: { queue?
         if (account?.desktopAccessStatus === "approved") {
           const provider = adapter.controls().model.selection.key()?.providerID
 
-          if (provider !== "awmate" || !account.gatewayEnabled) {
+          // Modified for AWMate: an account granted the OpenCode gateway may send with it too.
+          const allowed =
+            (provider === "awmate" && account.gatewayEnabled) ||
+            (provider === "opencode" && account.opencodeEnabled === true)
+
+          if (!allowed) {
             showToast({ title: "Gateway access is disabled for this account." })
 
             return false
@@ -322,7 +327,10 @@ export function createComposerModel(adapter: ComposerAdapter, options?: { queue?
         }
 
         if (account) {
-          showToast({ title: "Desktop access is not approved", description: "Contact support@nxtgensec.org for further details." })
+          showToast({
+            title: "Desktop access is not approved",
+            description: "Contact support@nxtgensec.org for further details.",
+          })
 
           return false
         }

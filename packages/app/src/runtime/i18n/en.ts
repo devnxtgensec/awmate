@@ -12,9 +12,11 @@ export const dict = {
   "awmate.auth.checking": "Checking your account access…",
   "awmate.auth.notApproved": "Your account is not yet approved. Contact support@nxtgensec.org for further details.",
   "awmate.auth.retry": "Try again",
-  "awmate.auth.timeout": "Sign-in timed out. The previous attempt was canceled. Try again to open a fresh Google sign-in.",
+  "awmate.auth.timeout":
+    "Sign-in timed out. The previous attempt was canceled. Try again to open a fresh Google sign-in.",
   "awmate.auth.support": "Contact support",
   "awmate.auth.secureNote": "Google sign-in · AWMate Gateway",
+  "awmate.gateway.name": "AWMate Gateway",
   "awmate.auth.unavailable": "Could not check your AWMate account. Check your connection and try again.",
   "experiment.voiceCalls": "Voice calls",
   "voice.call": "Call",

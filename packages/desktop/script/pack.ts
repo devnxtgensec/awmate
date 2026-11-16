@@ -53,7 +53,9 @@ if (!app && os === "mac") {
 
   if (bundles.length !== 1) throw new Error(`Expected one .app bundle in ${parent}, found ${bundles.join(", ")}`)
   await writeUpdateConfig(path.join(parent, bundles[0], "Contents", "Resources"))
-  await $`tar -cf ${path.join(out, `opencode-desktop-mac-${cli.cpu}.app.tar`)} -C ${parent} ${bundles[0]}`
+  // Modified for AWMate: name the macOS artifact after the build, not always after OpenCode.
+  const prefix = process.env.AWMATE_BUILD === "1" ? "awmate" : "opencode"
+  await $`tar -cf ${path.join(out, `${prefix}-desktop-mac-${cli.cpu}.app.tar`)} -C ${parent} ${bundles[0]}`
 }
 
 if (!app && os === "win") {

@@ -193,7 +193,9 @@ export async function signIn(openExternal: (url: string) => Promise<void>) {
   await cancelSignIn()
   const attempt: LoginAttempt = { controller: new AbortController() }
   activeLogin = attempt
-  const callbackScheme = app.isPackaged ? "awmate" : "awmate-local"
+  // Modified for AWMate: ask for the scheme this build actually registers, so the browser return
+  // cannot land on another app that owns a different scheme.
+  const callbackScheme = import.meta.env.AWMATE_BUILD === true ? (app.isPackaged ? "awmate" : "awmate-local") : "opencode"
   const signal = () => AbortSignal.any([attempt.controller.signal, AbortSignal.timeout(10_000)])
   let completed = false
 

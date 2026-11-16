@@ -13,9 +13,9 @@ permissions:
   contents: read
 
 jobs:
-  build-windows:
+  version:
     if: github.ref == 'refs/heads/main'
-    runs-on: windows-2025
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -27,6 +27,11 @@ jobs:
           previous=$(curl -fsSL https://github.com/devnxtgensec/awmate/releases/latest/download/latest.yml | sed -nE "s/^version: ([0-9]+[.][0-9]+[.][0-9]+).*$/\1/p")
           [[ "$previous" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]
           echo "version=${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.$((BASH_REMATCH[3]+1))" >> "$GITHUB_OUTPUT"
+
+  build-windows:
+    needs: version
+    runs-on: windows-2025
+    steps:
       - name: Check out AWMate main
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
@@ -40,7 +45,7 @@ jobs:
         shell: pwsh
         env:
           OPENCODE_CHANNEL: dev
-          OPENCODE_VERSION: ${{ steps.version.outputs.version }}
+          OPENCODE_VERSION: ${{ needs.version.outputs.version }}
         run: bun run script/build.ts --single --skip-install
 
       - name: Build AWMate desktop
@@ -50,7 +55,7 @@ jobs:
           AWMATE_BUILD: "1"
           OPENCODE_CHANNEL: dev
           OPENCODE_TARGET: windows-x64
-          OPENCODE_VERSION: ${{ steps.version.outputs.version }}
+          OPENCODE_VERSION: ${{ needs.version.outputs.version }}
         run: bun run build
 
       - name: Build installer and update metadata
@@ -60,7 +65,7 @@ jobs:
           AWMATE_BUILD: "1"
           OPENCODE_CHANNEL: dev
           OPENCODE_TARGET: windows-x64
-          OPENCODE_VERSION: ${{ steps.version.outputs.version }}
+          OPENCODE_VERSION: ${{ needs.version.outputs.version }}
         run: |
           bun run pack
           $unpacked = Join-Path $env:RUNNER_TEMP 'awmate-unpacked'
@@ -92,8 +97,84 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # Modified for AWMate: ship a macOS build from the same release. The app is unsigned until an Apple
+  # Developer ID certificate is configured, so the download page tells users how to open it once.
+  build-macos:
+    needs: version
+    runs-on: macos-14
+    steps:
+      - name: Check out AWMate main
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun and dependencies
+        uses: ./.github/actions/setup-bun
+
+      - name: Build the AWMate runtime
+        working-directory: packages/cli
+        env:
+          OPENCODE_CHANNEL: dev
+          OPENCODE_TARGET: darwin-arm64
+          OPENCODE_VERSION: ${{ needs.version.outputs.version }}
+        run: bun run script/build.ts --single --skip-install
+
+      - name: Build AWMate desktop
+        working-directory: packages/desktop
+        env:
+          AWMATE_BUILD: "1"
+          OPENCODE_CHANNEL: dev
+          OPENCODE_TARGET: darwin-arm64
+          OPENCODE_VERSION: ${{ needs.version.outputs.version }}
+        run: bun run build
+
+      - name: Package the app
+        working-directory: packages/desktop
+        env:
+          AWMATE_BUILD: "1"
+          OPENCODE_CHANNEL: dev
+          OPENCODE_TARGET: darwin-arm64
+          OPENCODE_VERSION: ${{ needs.version.outputs.version }}
+        run: bun run pack
+
+      - name: Collect release files
+        env:
+          OPENCODE_VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          app=$(ls -d packages/desktop/dist/mac-arm64/*.app | head -n1)
+          if [ -z "$app" ]; then echo "AWMate.app was not created." >&2; exit 1; fi
+
+          cli="$app/Contents/Resources/opencode-cli"
+          if [ ! -x "$cli" ]; then echo "Bundled CLI is missing or not executable: $cli" >&2; exit 1; fi
+          if [ ! -s "$app/Contents/Resources/opencode-cli.version" ]; then echo "Bundled CLI version is empty." >&2; exit 1; fi
+
+          plist="$app/Contents/Info.plist"
+          if ! /usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes" "$plist" | grep -q awmate; then
+            echo "The app bundle does not register the awmate URL scheme." >&2
+            exit 1
+          fi
+          if [ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")" != "$OPENCODE_VERSION" ]; then
+            echo "The app bundle version does not match $OPENCODE_VERSION." >&2
+            exit 1
+          fi
+
+          release="$RUNNER_TEMP/awmate-release"
+          mkdir -p "$release"
+          # ditto keeps the bundle's symlinks, permissions and extended attributes; zip -r does not.
+          ditto -c -k --sequesterRsrc --keepParent "$app" "$release/awmate-desktop-mac-arm64.zip"
+          shasum -a 256 "$release/awmate-desktop-mac-arm64.zip" | awk '{print $1}' > "$release/awmate-desktop-mac-arm64.zip.sha256"
+
+      - name: Upload release files
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: awmate-macos-release
+          path: ${{ runner.temp }}/awmate-release/*
+          if-no-files-found: error
+          retention-days: 7
+
   publish:
-    needs: build-windows
+    needs: [version, build-windows, build-macos]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -101,15 +182,16 @@ jobs:
       - name: Download verified build artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: awmate-windows-release
+          pattern: awmate-*-release
+          merge-multiple: true
           path: release
 
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          TAG: v${{ needs.build-windows.outputs.version }}
+          TAG: v${{ needs.version.outputs.version }}
           TARGET_SHA: ${{ github.sha }}
         run: |
           shopt -s nullglob
-          gh release create "$TAG" release/*.exe release/*.zip release/latest.yml release/*.blockmap --title "AWMate $TAG" --generate-notes --latest --target "$TARGET_SHA"
+          gh release create "$TAG" release/*.exe release/*.zip release/*.sha256 release/latest.yml release/*.blockmap --title "AWMate $TAG" --generate-notes --latest --target "$TARGET_SHA"

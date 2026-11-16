@@ -97,11 +97,23 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # Modified for AWMate: ship a macOS build from the same release. The app is unsigned until an Apple
-  # Developer ID certificate is configured, so the download page tells users how to open it once.
+  # Modified for AWMate: ship both macOS variants from the same release. The app is unsigned until an
+  # Apple Developer ID certificate is configured, so the download page tells users how to open it once.
   build-macos:
     needs: version
-    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Apple Silicon builds natively; Intel needs its own runner so bun installs the darwin-x64
+          # node-pty prebuild instead of skipping it.
+          - runner: macos-14
+            target: darwin-arm64
+            arch: arm64
+          - runner: macos-13
+            target: darwin-x64
+            arch: x64
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Check out AWMate main
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -115,7 +127,7 @@ jobs:
         working-directory: packages/cli
         env:
           OPENCODE_CHANNEL: dev
-          OPENCODE_TARGET: darwin-arm64
+          OPENCODE_TARGET: ${{ matrix.target }}
           OPENCODE_VERSION: ${{ needs.version.outputs.version }}
         run: bun run script/build.ts --single --skip-install
 
@@ -124,7 +136,7 @@ jobs:
         env:
           AWMATE_BUILD: "1"
           OPENCODE_CHANNEL: dev
-          OPENCODE_TARGET: darwin-arm64
+          OPENCODE_TARGET: ${{ matrix.target }}
           OPENCODE_VERSION: ${{ needs.version.outputs.version }}
         run: bun run build
 
@@ -133,16 +145,17 @@ jobs:
         env:
           AWMATE_BUILD: "1"
           OPENCODE_CHANNEL: dev
-          OPENCODE_TARGET: darwin-arm64
+          OPENCODE_TARGET: ${{ matrix.target }}
           OPENCODE_VERSION: ${{ needs.version.outputs.version }}
         run: bun run pack
 
       - name: Collect release files
         env:
           OPENCODE_VERSION: ${{ needs.version.outputs.version }}
+          ARCH: ${{ matrix.arch }}
         run: |
           set -euo pipefail
-          app=$(ls -d packages/desktop/dist/mac-arm64/*.app | head -n1)
+          app=$(ls -d packages/desktop/dist/mac-*/*.app | head -n1)
           if [ -z "$app" ]; then echo "AWMate.app was not created." >&2; exit 1; fi
 
           cli="$app/Contents/Resources/opencode-cli"
@@ -162,13 +175,13 @@ jobs:
           release="$RUNNER_TEMP/awmate-release"
           mkdir -p "$release"
           # ditto keeps the bundle's symlinks, permissions and extended attributes; zip -r does not.
-          ditto -c -k --sequesterRsrc --keepParent "$app" "$release/awmate-desktop-mac-arm64.zip"
-          shasum -a 256 "$release/awmate-desktop-mac-arm64.zip" | awk '{print $1}' > "$release/awmate-desktop-mac-arm64.zip.sha256"
+          ditto -c -k --sequesterRsrc --keepParent "$app" "$release/awmate-desktop-mac-$ARCH.zip"
+          shasum -a 256 "$release/awmate-desktop-mac-$ARCH.zip" | awk '{print $1}' > "$release/awmate-desktop-mac-$ARCH.zip.sha256"
 
       - name: Upload release files
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: awmate-macos-release
+          name: awmate-macos-${{ matrix.arch }}-release
           path: ${{ runner.temp }}/awmate-release/*
           if-no-files-found: error
           retention-days: 7
@@ -191,7 +204,8 @@ jobs:
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         continue-on-error: true
         with:
-          name: awmate-macos-release
+          pattern: awmate-macos-*-release
+          merge-multiple: true
           path: release
 
       - name: Publish GitHub release

@@ -7,7 +7,8 @@ on:
 
 concurrency:
   group: awmate-windows-release
-  cancel-in-progress: false
+  # A newer commit supersedes a run that is stuck waiting for a macOS runner.
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -114,6 +115,7 @@ jobs:
             target: darwin-x64
             arch: x64
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
     steps:
       - name: Check out AWMate main
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -187,8 +189,8 @@ jobs:
           retention-days: 7
 
   publish:
-    needs: [version, build-windows, build-macos]
-    # A macOS failure must not block the Windows release.
+    needs: [version, build-windows]
+    # The Windows release must never wait on a macOS runner.
     if: always() && needs.build-windows.result == 'success'
     runs-on: ubuntu-24.04
     permissions:
@@ -200,14 +202,6 @@ jobs:
           name: awmate-windows-release
           path: release
 
-      - name: Download macOS artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        continue-on-error: true
-        with:
-          pattern: awmate-macos-*-release
-          merge-multiple: true
-          path: release
-
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -217,3 +211,33 @@ jobs:
         run: |
           shopt -s nullglob
           gh release create "$TAG" release/*.exe release/*.zip release/*.sha256 release/latest.yml release/*.blockmap --title "AWMate $TAG" --generate-notes --latest --target "$TARGET_SHA"
+
+  # Modified for AWMate: macOS artifacts are attached once they exist, without holding up the release.
+  attach-macos:
+    needs: [version, publish, build-macos]
+    if: always() && needs.publish.result == 'success'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        continue-on-error: true
+        with:
+          pattern: awmate-macos-*-release
+          merge-multiple: true
+          path: release
+
+      - name: Attach macOS artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: v${{ needs.version.outputs.version }}
+        run: |
+          shopt -s nullglob
+          files=(release/*.zip release/*.sha256)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No macOS artifacts were produced; nothing to attach."
+            exit 0
+          fi
+          gh release upload "$TAG" "${files[@]}" --clobber

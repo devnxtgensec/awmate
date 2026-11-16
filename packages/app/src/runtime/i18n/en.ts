@@ -17,6 +17,7 @@ export const dict = {
   "awmate.auth.support": "Contact support",
   "awmate.auth.secureNote": "Google sign-in · AWMate Gateway",
   "awmate.gateway.name": "AWMate Gateway",
+  "awmate.gateway.choose": "Choose gateway",
   "awmate.auth.unavailable": "Could not check your AWMate account. Check your connection and try again.",
   "experiment.voiceCalls": "Voice calls",
   "voice.call": "Call",

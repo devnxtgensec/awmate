@@ -1,15 +1,17 @@
-import { Show, createEffect, createMemo, createSignal, onCleanup, untrack } from "solid-js"
+import { For, Show, createEffect, createMemo, createSignal, onCleanup, untrack } from "solid-js"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { createMediaQuery } from "@solid-primitives/media"
 import { Button } from "@opencode/ui/button"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { Icon } from "@opencode/ui/icon"
 import { Keybind } from "@opencode/ui/keybind"
+import { Menu } from "@opencode/ui/menu"
 import { Slash } from "@opencode/ui/slash"
 import { Tooltip } from "@opencode/ui/tooltip"
 import { ComposerEditor } from "./editor/editor"
 import { DialogSelectModel, ModelSelectorDrawer } from "@/providers/models/select-dialog"
 import { DialogSelectModelUnpaid } from "@/providers/models/unpaid"
+import { gatewayOrder, isGateway } from "@/providers/models/gateway"
 import { formatKeybind, useCommand } from "@/shell/commands/command"
 import { useLanguage } from "@/runtime/i18n/language"
 import type { ComposerModel } from "./model"
@@ -20,9 +22,6 @@ import {
   transitionModelChip,
   type ModelChipEvent,
 } from "./model-chip-machine"
-
-// Modified for AWMate: the two gateways an account can be granted.
-const isGateway = (providerID: string | undefined) => providerID === "awmate" || providerID === "opencode"
 
 export function Composer(props: {
   class?: string
@@ -72,6 +71,30 @@ export function Composer(props: {
     return props.model.model.selection.current()?.provider.name ?? language.t("awmate.gateway.name")
   }
 
+  // Modified for AWMate: the gateways this account was granted, read from the models the desktop allows.
+  const gateways = createMemo(() => {
+    const seen = new Map<string, string>()
+
+    for (const item of props.model.model.selection.list()) {
+      if (isGateway(item.provider.id) && !seen.has(item.provider.id)) seen.set(item.provider.id, item.provider.name)
+    }
+
+    return [...seen]
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => gatewayOrder.indexOf(a.id) - gatewayOrder.indexOf(b.id))
+  })
+
+  // Modified for AWMate: switching gateway returns to the model that gateway was last used with.
+  const switchGateway = (providerID: string) => {
+    const selection = props.model.model.selection
+
+    const target =
+      selection.recent().find((item) => item?.provider.id === providerID) ??
+      selection.list().find((item) => item.provider.id === providerID)
+
+    if (target) selection.set({ providerID: target.provider.id, modelID: target.id }, { recent: true })
+  }
+
   return (
     <div class="flex flex-col gap-3">
       <ComposerEditor
@@ -88,7 +111,37 @@ export function Composer(props: {
         modelControl={
           <>
             <Show when={import.meta.env.AWMATE_BUILD === "true"}>
-              <span class="truncate px-1 text-xs text-v2-text-text-muted">{gatewayName()}</span>
+              <Show
+                when={gateways().length > 1}
+                fallback={<span class="truncate px-1 text-xs text-v2-text-text-muted">{gatewayName()}</span>}
+              >
+                <Menu placement="top-start" gutter={6} modal={false}>
+                  <Menu.Trigger
+                    data-action="composer-gateway"
+                    aria-label={language.t("awmate.gateway.choose")}
+                    class="flex shrink-0 items-center gap-1 rounded-[6px] px-1 text-xs leading-[var(--line-height-compact)] text-v2-text-text-muted transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:text-v2-text-text-base focus-visible:outline-none data-[expanded]:bg-v2-overlay-simple-overlay-hover data-[expanded]:text-v2-text-text-base"
+                  >
+                    <span class="truncate">{gatewayName()}</span>
+                    <Icon name="chevron-down" size="small" />
+                  </Menu.Trigger>
+                  <Menu.Portal>
+                    <Menu.Content>
+                      <Menu.RadioGroup
+                        value={props.model.model.selection.key()?.providerID}
+                        onChange={(providerID) => switchGateway(providerID)}
+                      >
+                        <For each={gateways()}>
+                          {(item) => (
+                            <Menu.RadioItem value={item.id} closeOnSelect>
+                              {item.name}
+                            </Menu.RadioItem>
+                          )}
+                        </For>
+                      </Menu.RadioGroup>
+                    </Menu.Content>
+                  </Menu.Portal>
+                </Menu>
+              </Show>
             </Show>
             <ComposerModelControl
               loading={props.model.model.loading}
@@ -124,12 +177,19 @@ function ComposerModelControl(props: {
   const mobile = createMediaQuery("(max-width: 767px)")
   const dialog = useDialog()
 
+  // Modified for AWMate: the model dialog lists only the selected gateway's models.
+  const gateway = () => {
+    const provider = props.model.key()?.providerID
+
+    return isGateway(provider) ? provider : undefined
+  }
+
   const open = (detail: number) => {
     const provider = props.model.key()?.providerID
 
-    // Modified for AWMate: both gateways are listed, so an account granted OpenCode can switch to it here.
+    // Modified for AWMate: an account granted OpenCode reaches it from the gateway menu beside the chip.
     if (import.meta.env.AWMATE_BUILD === "true" && isGateway(provider)) {
-      void dialog.show(() => <DialogSelectModel model={props.model} />, props.onClose)
+      void dialog.show(() => <DialogSelectModel model={props.model} provider={provider} />, props.onClose)
 
       return
     }
@@ -137,7 +197,10 @@ function ComposerModelControl(props: {
     if (!props.paid) return props.onUnpaidClick()
     // A pointer open keeps focus in the composer, so the dialog returns it to the caret. A keyboard open
     // (a click with no pointer presses) returns focus to this trigger instead of moving it to the editor.
-    void dialog.show(() => <DialogSelectModel model={props.model} />, detail === 0 ? undefined : props.onClose)
+    void dialog.show(
+      () => <DialogSelectModel model={props.model} provider={gateway()} />,
+      detail === 0 ? undefined : props.onClose,
+    )
   }
 
   // A previewed chip is visible before the catalog loads, so a click on it opens the dialog once loading finishes,
@@ -248,6 +311,7 @@ function ComposerModelControl(props: {
         >
           <ModelSelectorDrawer
             model={props.model}
+            provider={gateway()}
             trigger={(triggerProps) => (
               <Button
                 {...triggerProps}

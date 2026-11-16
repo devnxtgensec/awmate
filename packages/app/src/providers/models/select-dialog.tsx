@@ -56,6 +56,7 @@ import {
 import { formatKeybindParts, matchKeybind, parseKeybind } from "@/shell/commands/command"
 import { createEventListener } from "@solid-primitives/event-listener"
 import { matchesModelSearch } from "./search"
+import { gatewayOrder } from "./gateway"
 import { SettingsList } from "@/settings/list"
 import {
   CONSOLE_GROUP_KEY,
@@ -81,9 +82,6 @@ type ModelItem = ReturnType<ModelState["list"]>[number]
 const favoriteKeybind = parseKeybind("mod+f")
 
 const modelKey = (model: ModelItem) => `${model.provider.id}:${model.id}`
-
-// Modified for AWMate: the managed gateway leads the picker, and OpenCode follows when the account is granted it.
-const gatewayOrder = ["awmate", "opencode"]
 
 const sortModelGroups = (a: { category: string; items: ModelItem[] }, b: { category: string; items: ModelItem[] }) => {
   if (import.meta.env.AWMATE_BUILD === "true") {

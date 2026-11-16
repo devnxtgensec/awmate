@@ -175,15 +175,23 @@ jobs:
 
   publish:
     needs: [version, build-windows, build-macos]
+    # A macOS failure must not block the Windows release.
+    if: always() && needs.build-windows.result == 'success'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
-      - name: Download verified build artifacts
+      - name: Download Windows artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          pattern: awmate-*-release
-          merge-multiple: true
+          name: awmate-windows-release
+          path: release
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        continue-on-error: true
+        with:
+          name: awmate-macos-release
           path: release
 
       - name: Publish GitHub release

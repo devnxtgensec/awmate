@@ -1,0 +1,20 @@
+﻿name: macOS label probe
+
+on:
+  push:
+    branches: [macos-probe]
+  workflow_dispatch:
+
+jobs:
+  latest:
+    runs-on: macos-latest
+    steps:
+      - run: sw_vers && uname -m
+  v15:
+    runs-on: macos-15
+    steps:
+      - run: sw_vers && uname -m
+  v26:
+    runs-on: macos-26
+    steps:
+      - run: sw_vers && uname -m

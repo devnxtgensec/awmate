@@ -10,6 +10,7 @@ import { stripVTControlCharacters } from "node:util"
 import { RetainedImage } from "./retained-image"
 import { action, parseReleaseVersion, type Policy } from "./updater-action"
 import { errorMessage } from "../util/error"
+import { awmate, commandName, productName } from "@opencode/util/product"
 
 export const methods = ["curl", "npm", "pnpm", "bun", "yarn", "vp", "brew", "winget"] as const
 
@@ -46,7 +47,7 @@ const decodeVpPackages = Schema.decodeUnknownOption(
 )
 
 const installNames: Record<Method, string> = {
-  curl: "The OpenCode installer",
+  curl: awmate ? `The ${productName} release download` : "The OpenCode installer",
   npm: "npm",
   pnpm: "pnpm",
   bun: "Bun",
@@ -189,9 +190,9 @@ const make = Effect.gen(function* () {
 
   const curlPath = path.resolve(
     global.home,
-    ".opencode",
+    awmate ? ".awmate" : ".opencode",
     "bin",
-    process.platform === "win32" ? "opencode.exe" : "opencode",
+    process.platform === "win32" ? `${commandName}.exe` : commandName,
   )
   const curlBinary = yield* fs.realPath(curlPath).pipe(Effect.orElseSucceed(() => curlPath))
 
@@ -204,14 +205,15 @@ const make = Effect.gen(function* () {
     if (bash && (yield* fs.exists(bash).pipe(Effect.orElseSucceed(() => false)))) return bash
     return yield* Effect.fail(
       new UpgradeError({
-        title: "Git Bash is required to update OpenCode",
-        detail: "The OpenCode installer runs with Git Bash on Windows, and it was not found.",
-        retry: "Install Git for Windows or set OPENCODE_GIT_BASH_PATH, then run opencode upgrade again.",
+        title: `Git Bash is required to update ${productName}`,
+        detail: `The ${productName} installer runs with Git Bash on Windows, and it was not found.`,
+        retry: `Install Git for Windows or set OPENCODE_GIT_BASH_PATH, then run ${commandName} upgrade again.`,
       }),
     )
   })
 
   const method = Effect.fnUntraced(function* () {
+    if (awmate) return "curl" as const
     if (executable === curlBinary) return "curl"
     if (installedFormula) return "brew"
     if (installedWinget) return "winget"
@@ -273,6 +275,54 @@ const make = Effect.gen(function* () {
   }
 
   const release = Effect.fnUntraced(function* (method?: Method) {
+    if (awmate) {
+      const response = yield* Effect.tryPromise({
+        try: (signal) =>
+          fetch("https://api.github.com/repos/devnxtgensec/awmate/releases/latest", {
+            headers: { Accept: "application/vnd.github+json" },
+            signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]),
+          }),
+        catch: (cause) =>
+          new UpgradeError(
+            {
+              title: `Could not check for ${productName} updates`,
+              detail: errorDetail(cause),
+              retry: `Check your network, then run ${commandName} upgrade again.`,
+            },
+            { cause },
+          ),
+      })
+      if (!response.ok)
+        return yield* Effect.fail(
+          new UpgradeError({
+            title: `Could not check for ${productName} updates`,
+            detail: `The release service returned HTTP ${response.status}.`,
+            retry: "Try again in a few minutes.",
+          }),
+        )
+      const data: { tag_name?: string } = yield* Effect.tryPromise({
+        try: () => response.json(),
+        catch: (cause) =>
+          new UpgradeError(
+            {
+              title: `Could not read the ${productName} update information`,
+              detail: errorDetail(cause),
+              retry: "Try again in a few minutes.",
+            },
+            { cause },
+          ),
+      })
+      const version = data.tag_name?.replace(/^v/, "")
+      if (!version)
+        return yield* Effect.fail(
+          new UpgradeError({
+            title: `Could not read the ${productName} update information`,
+            detail: "The release service returned incomplete release information.",
+            retry: "Try again in a few minutes.",
+          }),
+        )
+      return { package: "awmate", version }
+    }
     const distribution = method === "brew" ? "homebrew" : "npm"
     // Homebrew Core builds its formula on its own schedule, so the tap release does not describe it.
     const core = method === "brew" && installedFormula === "opencode"
@@ -289,9 +339,9 @@ const make = Effect.gen(function* () {
       catch: (cause) =>
         new UpgradeError(
           {
-            title: "Could not check for OpenCode updates",
+            title: `Could not check for ${productName} updates`,
             detail: errorDetail(cause),
-            retry: "Check your network, then run opencode upgrade again.",
+            retry: `Check your network, then run ${commandName} upgrade again.`,
           },
           { cause },
         ),
@@ -299,7 +349,7 @@ const make = Effect.gen(function* () {
     if (!response.ok)
       return yield* Effect.fail(
         new UpgradeError({
-          title: "Could not check for OpenCode updates",
+          title: `Could not check for ${productName} updates`,
           detail: `The update service returned HTTP ${response.status}.`,
           retry: "Try again in a few minutes.",
         }),
@@ -310,7 +360,7 @@ const make = Effect.gen(function* () {
         catch: (cause) =>
           new UpgradeError(
             {
-              title: "Could not read the OpenCode update information",
+              title: `Could not read the ${productName} update information`,
               detail: errorDetail(cause),
               retry: "Try again in a few minutes.",
             },
@@ -322,7 +372,7 @@ const make = Effect.gen(function* () {
     if (!version || !packageName)
       return yield* Effect.fail(
         new UpgradeError({
-          title: "Could not read the OpenCode update information",
+          title: `Could not read the ${productName} update information`,
           detail: "The update service returned incomplete release information.",
           retry: "Try again in a few minutes.",
         }),
@@ -335,10 +385,10 @@ const make = Effect.gen(function* () {
     const failure = (detail: string, cause?: unknown) =>
       new UpgradeError(
         {
-          title: "Could not check for OpenCode updates",
+          title: `Could not check for ${productName} updates`,
           detail,
           command: ["winget", "search", ...wingetArgs].join(" "),
-          retry: "Fix the issue above, then run opencode upgrade again.",
+          retry: `Fix the issue above, then run ${commandName} upgrade again.`,
         },
         cause === undefined ? undefined : { cause },
       )
@@ -376,8 +426,9 @@ const make = Effect.gen(function* () {
   const retaining = <A, E, R>(method: Method, effect: Effect.Effect<A, E, R>, directory = global.cache) => {
     if (process.platform !== "win32" || method === "brew") return effect
     // Only the installed binary is at stake; source checkouts run inside bun or node.
-    const owned =
-      method === "curl"
+    const owned = awmate
+      ? true
+      : method === "curl"
         ? executable === curlBinary
         : method === "winget"
           ? installedWinget
@@ -387,6 +438,66 @@ const make = Effect.gen(function* () {
       Effect.provideService(FileSystem.FileSystem, fs),
     )
   }
+
+  const assetName = () => {
+    if (process.platform === "win32" && process.arch === "x64") return "awmate-cli-windows-x64.exe"
+    if (process.platform === "darwin" && process.arch === "arm64") return "awmate-cli-darwin-arm64"
+    if (process.platform === "linux" && process.arch === "x64") return "awmate-cli-linux-x64"
+    return undefined
+  }
+
+  const upgradeBinary = (version: string) =>
+    Effect.gen(function* () {
+      if (OPENCODE_LOCAL)
+        return yield* Effect.fail(
+          new UpgradeError({
+            title: "Cannot update a source checkout",
+            detail: "This build runs from source.",
+            retry: `Install a released ${productName} build to use ${commandName} upgrade.`,
+          }),
+        )
+      const name = assetName()
+      if (!name)
+        return yield* Effect.fail(
+          new UpgradeError({
+            title: `No ${productName} build for this platform`,
+            detail: `${process.platform}/${process.arch} is not published.`,
+            retry: "Download the latest release from https://github.com/devnxtgensec/awmate/releases.",
+          }),
+        )
+      const url = `https://github.com/devnxtgensec/awmate/releases/download/v${version}/${name}`
+      const bytes = yield* Effect.tryPromise({
+        try: async (signal) => {
+          const response = await fetch(url, { signal: AbortSignal.any([signal, AbortSignal.timeout(5 * 60_000)]) })
+          if (!response.ok) throw new Error(`HTTP ${response.status}`)
+          return new Uint8Array(await response.arrayBuffer())
+        },
+        catch: (cause) =>
+          new UpgradeError(
+            {
+              title: `Could not download ${productName} ${version}`,
+              detail: errorDetail(cause),
+              command: url,
+              retry: "Check your network, then try again.",
+            },
+            { cause },
+          ),
+      })
+      const temporary = `${executable}.upgrade-${process.pid}`
+      yield* Effect.scoped(
+        Effect.gen(function* () {
+          yield* flock.acquire("cli-upgrade", undefined, { timeoutMs: Duration.toMillis("15 minutes") })
+          yield* retaining(
+            "curl",
+            Effect.gen(function* () {
+              yield* fs.writeFile(temporary, bytes)
+              if (process.platform !== "win32") yield* fs.chmod(temporary, 0o755)
+              yield* fs.rename(temporary, executable)
+            }),
+          )
+        }),
+      )
+    })
 
   const runUpgrade = (input: {
     readonly method: Method
@@ -398,10 +509,10 @@ const make = Effect.gen(function* () {
     const failure = (detail: string, cause?: unknown) =>
       new UpgradeError(
         {
-          title: input.title ?? `${installNames[input.method]} could not install OpenCode`,
+          title: input.title ?? `${installNames[input.method]} could not install ${productName}`,
           detail,
           command: (input.displayCommand ?? input.command).join(" "),
-          retry: input.retry ?? "Fix the issue above, then run opencode upgrade again.",
+          retry: input.retry ?? `Fix the issue above, then run ${commandName} upgrade again.`,
         },
         cause === undefined ? undefined : { cause },
       )
@@ -425,6 +536,7 @@ const make = Effect.gen(function* () {
   const upgrade = Effect.fnUntraced(function* (method: Method, input: string) {
     if (!parseReleaseVersion(input)) return yield* Effect.fail(new Error(`Invalid version: ${input}`))
     const version = input.trim().replace(/^v/, "")
+    if (awmate) return yield* upgradeBinary(version)
     const packageName =
       method === "winget"
         ? wingetPackage
@@ -482,16 +594,16 @@ const make = Effect.gen(function* () {
             method,
             command: ["curl", "-fsSL", "-o", installer, "https://opencode.ai/v2/install"],
             displayCommand: ["curl", "-fsSL", "https://opencode.ai/v2/install"],
-            title: "Could not download the OpenCode installer",
-            retry: "Check your network, then run opencode upgrade again.",
+            title: `Could not download the ${productName} installer`,
+            retry: `Check your network, then run ${commandName} upgrade again.`,
           })
           return yield* retaining(
             method,
             runUpgrade({
               method,
               command: [bash, installer, "--version", version, "--no-modify-path"],
-              displayCommand: ["opencode", "upgrade", version, "--method", "curl"],
-              title: "The OpenCode installer failed",
+              displayCommand: [commandName, "upgrade", version, "--method", "curl"],
+              title: `The ${productName} installer failed`,
             }),
           )
         }
@@ -520,9 +632,9 @@ const make = Effect.gen(function* () {
           ? cause
           : new UpgradeError(
               {
-                title: "Could not prepare the OpenCode upgrade",
+                title: `Could not prepare the ${productName} upgrade`,
                 detail: errorDetail(cause),
-                retry: "Fix the issue above, then run opencode upgrade again.",
+                retry: `Fix the issue above, then run ${commandName} upgrade again.`,
               },
               { cause },
             ),
@@ -557,7 +669,7 @@ const make = Effect.gen(function* () {
       yield* Effect.logInfo("update check done", { action: "up-to-date" })
       return undefined
     }
-    yield* Effect.logInfo("OpenCode update available", { current, latest: version, action: next })
+    yield* Effect.logInfo(`${productName} update available`, { current, latest: version, action: next })
     return { policy, version }
   })
 
@@ -570,7 +682,7 @@ const make = Effect.gen(function* () {
     const current = yield* Ref.get(installedVersion)
     yield* upgrade(detected, version)
     yield* Ref.set(installedVersion, version)
-    yield* Effect.logInfo("updated OpenCode", { from: current, to: version, method: detected })
+    yield* Effect.logInfo(`updated ${productName}`, { from: current, to: version, method: detected })
     return true
   })
 
@@ -587,7 +699,7 @@ const make = Effect.gen(function* () {
     if (OPENCODE_LOCAL)
       return {
         type: "unavailable" as const,
-        message: "This build runs from a source checkout. Use an installed OpenCode release to check for updates.",
+        message: `This build runs from a source checkout. Use an installed ${productName} release to check for updates.`,
       }
     const detected = yield* method()
     if (!detected)

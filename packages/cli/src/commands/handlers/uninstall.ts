@@ -10,11 +10,12 @@ import { RetainedImage } from "../../services/retained-image"
 import { Updater } from "../../services/updater"
 import { handlePromptErrors, prompt, requireInteractive } from "../../ui/prompt"
 import { errorMessage } from "../../util/error"
+import { awmate, productName } from "@opencode/util/product"
 
 export default Runtime.handler(
   Commands.commands.uninstall,
   Effect.fn("cli.uninstall")(function* (input) {
-    intro("Uninstall OpenCode")
+    intro(`Uninstall ${productName}`)
     const fs = yield* FileSystem.FileSystem
     const global = yield* Global.Service
     const updater = yield* Updater.Service
@@ -29,7 +30,7 @@ export default Runtime.handler(
     const shell = method === "curl" ? yield* shellConfigs(global.home) : []
 
     log.info(`Installation method: ${method ?? "unknown"}`)
-    log.message("The following global files will be removed (shared by OpenCode versions and channels):")
+    log.message(`The following global files will be removed (shared by ${productName} versions and channels):`)
     if (yield* fs.exists(global.cache)) log.info(`  Cache: ${global.cache}`)
     services.forEach((name) =>
       log.info(`  Stop background service and persistent terminals: ${path.join(global.state, name)}`),
@@ -70,7 +71,7 @@ export default Runtime.handler(
       )
     }
 
-    // Links that keep an older OpenCode replaceable may still run; move them so the cache can go.
+    // Links that keep an older AWMate replaceable may still run; move them so the cache can go.
     if (process.platform === "win32") yield* RetainedImage.relocate(global.cache, global.tmp)
     const errors: string[] = []
     progress.start("Removing Cache...")
@@ -154,7 +155,7 @@ const shellConfigs = Effect.fnUntraced(function* (home: string) {
 function cleanShellConfig(content: string) {
   const lines = content.split("\n")
   const entry = (line: string) =>
-    /^(?:export PATH=|fish_add_path\s)/.test(line.trim()) && line.includes(".opencode/bin")
+    /^(?:export PATH=|fish_add_path\s)/.test(line.trim()) && line.includes(awmate ? ".awmate/bin" : ".opencode/bin")
   return lines
     .filter((line, index) => !entry(line) && !(line.trim() === "# opencode" && entry(lines[index + 1] ?? "")))
     .join("\n")

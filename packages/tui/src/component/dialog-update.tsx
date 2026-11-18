@@ -5,6 +5,7 @@ import type { UpdateState } from "../context/update-notification"
 import { DialogButtons, DialogHeader, DialogLayout, useDialog } from "../ui/dialog"
 import { errorMessage } from "../util/error"
 import { Spinner } from "./spinner"
+import { commandName, productName } from "@opencode/util/product"
 
 export function DialogUpdate(props: {
   check?: (signal: AbortSignal) => Promise<string | undefined>
@@ -85,7 +86,7 @@ export function DialogUpdate(props: {
         <DialogHeader
           title={
             state().type === "installing"
-              ? "Updating OpenCode"
+              ? `Updating ${productName}`
               : state().type === "available" || state().type === "failed"
                 ? "Update available"
                 : "Update"
@@ -110,21 +111,21 @@ export function DialogUpdate(props: {
             </Match>
             <Match when={current.type === "available"}>
               <text fg={theme.text.muted}>
-                An update is available. After installing, you'll be prompted to restart OpenCode.
+                An update is available. After installing, you'll be prompted to restart {productName}.
               </text>
             </Match>
             <Match when={current.type === "installing"}>
               <Spinner shimmer={theme.text.base}>
-                {current.type === "installing" ? `Installing OpenCode ${current.version}…` : ""}
+                {current.type === "installing" ? `Installing ${productName} ${current.version}…` : ""}
               </Spinner>
             </Match>
             <Match when={current.type === "installed"}>
               <text fg={theme.text.muted} wrapMode="word">
-                Update successful! Restart closes OpenCode, then run opencode to use the new version.
+                Update successful! Restart closes {productName}, then run {commandName} to use the new version.
               </text>
             </Match>
             <Match when={current.type === "current"}>
-              <text fg={theme.text.muted}>OpenCode is already up to date.</text>
+              <text fg={theme.text.muted}>{productName} is already up to date.</text>
             </Match>
             <Match when={current.type === "unavailable"}>
               <text fg={theme.text.muted} wrapMode="word">

@@ -126,6 +126,19 @@ jobs:
       - name: Set up Bun and dependencies
         uses: ./.github/actions/setup-bun
 
+      # The arm64 desktop job cross-builds on the Intel runner, whose plain `bun install` only
+      # fetched x64 native binaries. build.ts embeds the target's pty and TUI bindings and fails
+      # with "Cannot find module '@opencode/pty-darwin-arm64/...'" without them (run 44307741710),
+      # so install the native packages for every platform, exactly like build.ts does without
+      # --skip-install.
+      - name: Install native packages for both darwin arches
+        working-directory: packages/cli
+        run: |
+          set -euo pipefail
+          pty=$(bun -e "console.log(require('@opencode/pty/package.json').version)")
+          core=$(bun -e "console.log(require('@opentui/core/package.json').version)")
+          bun install --os='*' --cpu='*' --libc='*' "@opencode/pty@$pty" "@opentui/core@$core"
+
       - name: Build the AWMate runtime
         working-directory: packages/cli
         env:
@@ -352,6 +365,16 @@ jobs:
 
       - name: Set up Bun and dependencies
         uses: ./.github/actions/setup-bun
+
+      # Cross-compiling darwin-arm64 on this Intel runner needs the target's native pty and TUI
+      # bindings, which a plain `bun install` skips on a different host (see build-macos).
+      - name: Install native packages for both darwin arches
+        working-directory: packages/cli
+        run: |
+          set -euo pipefail
+          pty=$(bun -e "console.log(require('@opencode/pty/package.json').version)")
+          core=$(bun -e "console.log(require('@opentui/core/package.json').version)")
+          bun install --os='*' --cpu='*' --libc='*' "@opencode/pty@$pty" "@opentui/core@$core"
 
       - name: Build the CLI for all darwin targets
         working-directory: packages/cli

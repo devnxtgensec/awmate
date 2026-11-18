@@ -54,7 +54,11 @@ export function defaultPort(channel = OPENCODE_CHANNEL, platform = process.platf
 }
 
 function channelPort(channel: string) {
-  if (channel === "latest" || channel === "dev" || channel === "beta" || channel === "next") return 0xc0de
+  // AWMate derives the release channels' port from the app name so an installed upstream
+  // OpenCode (which keeps 0xC0DE) never competes for the same default port on a machine with
+  // both. The channels still share one port so any release build finds the same service.
+  if (channel === "latest" || channel === "dev" || channel === "beta" || channel === "next")
+    return 10_000 + (Number.parseInt(Hash.fast("awmate").slice(0, 8), 16) % 50_000)
   if (channel === "local") return 0xc0df
   return 10_000 + (Number.parseInt(Hash.fast(channel).slice(0, 8), 16) % 50_000)
 }

@@ -21,19 +21,23 @@ import { testEffect } from "../../core/test/lib/effect"
 const it = testEffect(NodeFileSystem.layer)
 
 test("managed service ports are stable per installation channel", () => {
-  expect(ServiceConfig.defaultPort("latest", "linux")).toBe(0xc0de)
-  expect(ServiceConfig.defaultPort("dev", "linux")).toBe(0xc0de)
-  expect(ServiceConfig.defaultPort("beta", "linux")).toBe(0xc0de)
-  expect(ServiceConfig.defaultPort("next", "linux")).toBe(0xc0de)
+  // AWMate derives the well-known channels from the app name so an installed upstream OpenCode,
+  // which keeps 0xC0DE (0x70DE on Windows), never competes for the same default port.
+  expect(ServiceConfig.defaultPort("latest", "linux")).toBe(ServiceConfig.defaultPort("dev", "linux"))
+  expect(ServiceConfig.defaultPort("beta", "linux")).toBe(ServiceConfig.defaultPort("dev", "linux"))
+  expect(ServiceConfig.defaultPort("next", "linux")).toBe(ServiceConfig.defaultPort("dev", "linux"))
+  expect(ServiceConfig.defaultPort("dev", "linux")).not.toBe(0xc0de)
   expect(ServiceConfig.defaultPort("local", "linux")).toBe(0xc0df)
-  expect(ServiceConfig.defaultPort("latest", "darwin")).toBe(0xc0de)
+  expect(ServiceConfig.defaultPort("latest", "darwin")).toBe(ServiceConfig.defaultPort("dev", "darwin"))
   expect(ServiceConfig.defaultPort("preview-a", "linux")).toBe(ServiceConfig.defaultPort("preview-a", "linux"))
   expect(ServiceConfig.defaultPort("preview-a", "linux")).not.toBe(ServiceConfig.defaultPort("preview-b", "linux"))
 })
 
 test("managed service ports on Windows stay below the ranges Windows and WSL reserve", () => {
-  expect(ServiceConfig.defaultPort("latest", "win32")).toBe(0x70de)
-  expect(ServiceConfig.defaultPort("dev", "win32")).toBe(0x70de)
+  const linux = ServiceConfig.defaultPort("dev", "linux")
+  expect(linux).not.toBe(0xc0de)
+  expect(ServiceConfig.defaultPort("dev", "win32")).toBe(0x7000 | (linux & 0xfff))
+  expect(ServiceConfig.defaultPort("dev", "win32")).not.toBe(0x70de)
   expect(ServiceConfig.defaultPort("local", "win32")).toBe(0x70df)
   const ports = Array.from({ length: 200 }, (_, index) => ({
     windows: ServiceConfig.defaultPort(`preview-${index}`, "win32"),

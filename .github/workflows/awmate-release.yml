@@ -176,6 +176,74 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # Modified for AWMate: publish the standalone CLI so `curl | bash` and the PowerShell installer work.
+  build-cli:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2025
+            target: windows-x64
+            asset: awmate-cli-windows-x64.exe
+          - runner: macos-15
+            target: darwin-arm64
+            asset: awmate-cli-darwin-arm64
+          - runner: macos-15
+            target: darwin-x64
+            asset: awmate-cli-darwin-x64
+          - runner: ubuntu-24.04
+            target: linux-x64
+            asset: awmate-cli-linux-x64
+          - runner: ubuntu-24.04
+            target: linux-arm64
+            asset: awmate-cli-linux-arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - name: Check out AWMate main
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun and dependencies
+        uses: ./.github/actions/setup-bun
+
+      - name: Build the CLI
+        working-directory: packages/cli
+        env:
+          OPENCODE_CHANNEL: dev
+          OPENCODE_TARGET: ${{ matrix.target }}
+          OPENCODE_VERSION: ${{ needs.version.outputs.version }}
+        run: bun run script/build.ts --single --skip-install
+
+      - name: Collect the binary
+        shell: bash
+        env:
+          ASSET: ${{ matrix.asset }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          dir="packages/cli/dist/cli-$TARGET/bin"
+          if [ -f "$dir/opencode.exe" ]; then bin="$dir/opencode.exe"; else bin="$dir/opencode"; fi
+          if [ ! -f "$bin" ]; then
+            echo "CLI binary not found: $bin" >&2
+            ls -R packages/cli/dist | head -40 >&2
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/awmate-cli"
+          cp "$bin" "$RUNNER_TEMP/awmate-cli/$ASSET"
+          chmod +x "$RUNNER_TEMP/awmate-cli/$ASSET" || true
+          ls -l "$RUNNER_TEMP/awmate-cli"
+
+      - name: Upload the binary
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: awmate-cli-${{ matrix.target }}
+          path: ${{ runner.temp }}/awmate-cli/*
+          if-no-files-found: error
+          retention-days: 7
+
   publish:
     needs: [version, build-windows]
     # The Windows release must never wait on a macOS runner.
@@ -199,6 +267,36 @@ jobs:
         run: |
           shopt -s nullglob
           gh release create "$TAG" release/*.exe release/*.zip release/*.sha256 release/latest.yml release/*.blockmap --title "AWMate $TAG" --generate-notes --latest --target "$TARGET_SHA"
+
+  # Modified for AWMate: CLI binaries are attached once they exist, without holding up the release.
+  attach-cli:
+    needs: [version, publish, build-cli]
+    if: always() && needs.publish.result == 'success'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download CLI binaries
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        continue-on-error: true
+        with:
+          pattern: awmate-cli-*
+          merge-multiple: true
+          path: release
+
+      - name: Attach CLI binaries
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: v${{ needs.version.outputs.version }}
+        run: |
+          shopt -s nullglob
+          files=(release/awmate-cli-*)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No CLI binaries were produced; nothing to attach."
+            exit 0
+          fi
+          gh release upload "$TAG" "${files[@]}" --clobber
 
   # Modified for AWMate: macOS artifacts are attached once they exist, without holding up the release.
   attach-macos:

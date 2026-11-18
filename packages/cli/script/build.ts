@@ -18,6 +18,10 @@ import { bundledModelsSnapshot, modelsSnapshotPlugin } from "../../core/script/m
 
 const dir = path.resolve(import.meta.dirname, "..")
 const binary = "opencode"
+// Modified for AWMate: the branded build names the command and its help title without touching the
+// upstream identifiers used for packages, artifacts and protocol names.
+const cliName = process.env.AWMATE_CLI_NAME ?? binary
+const cliTitle = process.env.AWMATE_CLI_TITLE ?? "OpenCode"
 const outdir = path.resolve(
   dir,
   process.argv.find((arg) => arg.startsWith("--outdir="))?.slice("--outdir=".length) ?? "dist",
@@ -207,7 +211,8 @@ export default { path: file, version: ${JSON.stringify(opencodePty.version)}, sh
     },
     define: {
       OPENCODE_VERSION: `'${Script.version}'`,
-      OPENCODE_CLI_NAME: "'opencode'",
+      OPENCODE_CLI_NAME: `'${cliName}'`,
+      OPENCODE_CLI_TITLE: `'${cliTitle}'`,
       OPENCODE_CHANNEL: `'${Script.channel}'`,
       OPENCODE_ARTIFACT: `'cli'`,
       ...(highlights ? { OPENCODE_RELEASE_HIGHLIGHTS: JSON.stringify(highlights) } : {}),

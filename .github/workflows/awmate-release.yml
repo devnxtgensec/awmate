@@ -177,6 +177,8 @@ jobs:
           retention-days: 7
 
   # Modified for AWMate: publish the standalone CLI so `curl | bash` and the PowerShell installer work.
+  # Only native targets build here: cross-compiling needs the target's native pty package, which bun
+  # skips on a different host.
   build-cli:
     needs: version
     strategy:
@@ -189,15 +191,9 @@ jobs:
           - runner: macos-15
             target: darwin-arm64
             asset: awmate-cli-darwin-arm64
-          - runner: macos-15
-            target: darwin-x64
-            asset: awmate-cli-darwin-x64
           - runner: ubuntu-24.04
             target: linux-x64
             asset: awmate-cli-linux-x64
-          - runner: ubuntu-24.04
-            target: linux-arm64
-            asset: awmate-cli-linux-arm64
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     steps:
@@ -212,6 +208,8 @@ jobs:
       - name: Build the CLI
         working-directory: packages/cli
         env:
+          AWMATE_CLI_NAME: awmate
+          AWMATE_CLI_TITLE: AWMate
           OPENCODE_CHANNEL: dev
           OPENCODE_TARGET: ${{ matrix.target }}
           OPENCODE_VERSION: ${{ needs.version.outputs.version }}

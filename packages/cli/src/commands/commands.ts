@@ -30,8 +30,8 @@ const ServerFlags = [Standalone, Server] as const
 declare const OPENCODE_CLI_NAME: string | undefined
 declare const OPENCODE_CLI_TITLE: string | undefined
 
-const cliName = typeof OPENCODE_CLI_NAME === "string" ? OPENCODE_CLI_NAME : "opencode"
-const cliTitle = typeof OPENCODE_CLI_TITLE === "string" ? OPENCODE_CLI_TITLE : "OpenCode"
+const cliName = typeof OPENCODE_CLI_NAME === "string" ? OPENCODE_CLI_NAME : "awmate"
+const cliTitle = typeof OPENCODE_CLI_TITLE === "string" ? OPENCODE_CLI_TITLE : "AWMate"
 
 const ServerParams = {
   standalone: Standalone.flag,

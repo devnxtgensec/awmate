@@ -32,7 +32,11 @@ function migrateLegacyRoots() {
         recursive: true,
         force: false,
         errorOnExist: false,
-        filter: (entry) => !entry.includes(`${path.sep}repos`) && !entry.includes(`${path.sep}log`),
+        // Database files migrate through databasePath, which verifies and renames them atomically.
+        filter: (entry) =>
+          !entry.includes(`${path.sep}repos`) &&
+          !entry.includes(`${path.sep}log`) &&
+          !/\.db(-wal|-shm|-journal)?$/.test(entry),
       })
     } catch {
       // Leave the legacy directory in place; the next launch retries.

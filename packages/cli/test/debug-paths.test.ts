@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 import fs from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
+import { isolatedEnv } from "./fixture/environment"
 
 describe("debug paths command", () => {
   test("is included in troubleshooting help", async () => {
@@ -11,19 +12,28 @@ describe("debug paths command", () => {
     expect(debug.stdout).toContain("paths")
     expect(debug.stdout).toContain("Show global paths (data, config, cache, state)")
     expect(paths.exitCode).toBe(0)
-    expect(paths.stdout).toContain("opencode debug paths [flags]")
+    expect(paths.stdout).toContain("awmate debug paths [flags]")
   })
 
   test("prints resolved global paths without starting a server", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "opencode-debug-paths-"))
 
     try {
-      const result = await cli(["debug", "paths"], {
-        XDG_DATA_HOME: path.join(root, "data"),
-        XDG_CONFIG_HOME: path.join(root, "config"),
-        XDG_CACHE_HOME: path.join(root, "cache"),
-        XDG_STATE_HOME: path.join(root, "state"),
-      })
+      // A desktop-launched shell exports its own runtime root and database, so clear them and
+      // point every XDG root at the temporary directory instead of inheriting the app's paths.
+      const result = await cli(
+        ["debug", "paths"],
+        isolatedEnv(root, {
+          AWMATE_RUNTIME_ROOT: undefined,
+          OPENCODE_CONFIG_DIR: undefined,
+          OPENCODE_DB: undefined,
+          OPENCODE_DISABLE_CHANNEL_DB: "1",
+          XDG_DATA_HOME: path.join(root, "data"),
+          XDG_CONFIG_HOME: path.join(root, "config"),
+          XDG_CACHE_HOME: path.join(root, "cache"),
+          XDG_STATE_HOME: path.join(root, "state"),
+        }),
+      )
       const paths = Object.fromEntries(
         result.stdout
           .trim()
@@ -33,24 +43,25 @@ describe("debug paths command", () => {
 
       expect({ exitCode: result.exitCode, stderr: result.stderr }).toEqual({ exitCode: 0, stderr: "" })
       expect(paths).toMatchObject({
-        home: os.homedir(),
-        data: path.join(root, "data", "opencode"),
-        config: path.join(root, "config", "opencode"),
-        cache: path.join(root, "cache", "opencode"),
-        state: path.join(root, "state", "opencode"),
-        bin: path.join(root, "cache", "opencode", "bin"),
-        log: path.join(root, "data", "opencode", "log"),
-        repos: path.join(root, "data", "opencode", "repos"),
+        home: root,
+        data: path.join(root, "data", "awmate"),
+        config: path.join(root, "config", "awmate"),
+        cache: path.join(root, "cache", "awmate"),
+        state: path.join(root, "state", "awmate"),
+        bin: path.join(root, "cache", "awmate", "bin"),
+        log: path.join(root, "data", "awmate", "log"),
+        repos: path.join(root, "data", "awmate", "repos"),
+        db: path.join(root, "data", "awmate", "awmate.db"),
       })
       expect(paths.tmp).toBeTruthy()
-      expect(await Bun.file(path.join(root, "state", "opencode", "service-local.json")).exists()).toBe(false)
+      expect(await Bun.file(path.join(root, "state", "awmate", "service-local.json")).exists()).toBe(false)
     } finally {
       await fs.rm(root, { recursive: true, force: true })
     }
   })
 })
 
-async function cli(args: string[], env?: Record<string, string>) {
+async function cli(args: string[], env?: Record<string, string | undefined>) {
   const child = Bun.spawn([process.execPath, "run", path.join(import.meta.dir, "../src/index.ts"), ...args], {
     cwd: path.join(import.meta.dir, ".."),
     env: { ...process.env, ...env },

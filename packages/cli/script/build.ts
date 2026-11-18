@@ -20,8 +20,8 @@ const dir = path.resolve(import.meta.dirname, "..")
 const binary = "opencode"
 // Modified for AWMate: the branded build names the command and its help title without touching the
 // upstream identifiers used for packages, artifacts and protocol names.
-const cliName = process.env.AWMATE_CLI_NAME ?? binary
-const cliTitle = process.env.AWMATE_CLI_TITLE ?? "OpenCode"
+const cliName = process.env.AWMATE_CLI_NAME ?? "awmate"
+const cliTitle = process.env.AWMATE_CLI_TITLE ?? "AWMate"
 const outdir = path.resolve(
   dir,
   process.argv.find((arg) => arg.startsWith("--outdir="))?.slice("--outdir=".length) ?? "dist",

@@ -94,8 +94,22 @@ Desktop advertises 1,048,576 tokens for DeepSeek V4.1 Flash 1017 and GLM-5.3 Fla
 
 ## DeepSeek desktop context adjustment
 
-AWMate Gateway desktop chats now use a 200,000-token context budget for DeepSeek V4.1 Flash 1017. GLM-5.3 Flash retains its 1,048,576-token window and Gemma 4 retains 262,144.
+AWMate Gateway desktop chats use a 1,048,576-token context budget for DeepSeek V4.1 Flash 1017, raised from the earlier 200,000-token limit. GLM-5.3 Flash retains its 1,048,576-token window and Gemma 4 retains 262,144.
 
 ## Direct AWS gateway pilot
 
 The desktop selects the AWS streaming endpoint when the authenticated platform session enables awsGateway. Existing accounts keep their platform route until opted in.
+
+## Database repair, November 18
+
+The installed AWMate database was seven bytes containing the literal "current". The local database-path test wrote this same fixture via databasePath(dir), which honors inherited OPENCODE_DB. Passing an explicit temporary filename prevents tests from targeting the installed app database.
+
+Backups are under %APPDATA%/ai.awmate.desktop/recovery-20261118-131303. Original database, WAL and SHM files are retained there and as damaged-20261118-* beside the repaired database.
+
+Recovery from WAL pages was partial. SQLite recovery found 13 project records, 7 session records and 2 usable message records. A rebuilt database passed integrity_check and foreign_key_check. Most previous messages could not be restored from available pages. Preserved originals permit further recovery attempts.
+
+Do not run database-path tests with a production target. Tests now pass an explicit filename. The debug paths test runs through the shared isolated environment, so a desktop-launched shell no longer leaks its runtime root, config directory or database into the spawned CLI. Other pre-existing CLI branding edits remain in the worktree.
+
+Repair verification: restored the matching schema migration ledger from the healthy local profile. Both repaired databases pass integrity_check; the installed app started its location services successfully.
+
+The database migration now follows the same naming rule as OpenCode with the AWMate name: `awmate.db` on stable channels and `awmate-<channel>.db` otherwise. A legacy `opencode.db` is copied once from the same folder or the sibling `opencode` folder. The copy is verified with `PRAGMA quick_check`, written to a temporary file, and renamed into place, so an interrupted migration cannot leave a partial database. A corrupt target is moved aside as `awmate.db.corrupt-<timestamp>`, one `recovery` folder holds the last source copy, and `awmate.db.migrated.json` records where the database came from. The directory migration no longer copies database files.

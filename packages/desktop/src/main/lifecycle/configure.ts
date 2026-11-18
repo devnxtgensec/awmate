@@ -97,8 +97,8 @@ export function configureAWMateStorage(root: string) {
   process.env.XDG_CONFIG_HOME = path.join(root, "config")
   process.env.XDG_CACHE_HOME = path.join(root, "cache")
   process.env.XDG_STATE_HOME = path.join(root, "state")
-  process.env.OPENCODE_DB = testOnboarding ? ":memory:" : path.join(root, "data", "opencode", "awmate.db")
-  process.env.OPENCODE_CONFIG_DIR = path.join(root, "config", "opencode")
+  process.env.OPENCODE_DB = testOnboarding ? ":memory:" : path.join(root, "data", "awmate", "awmate.db")
+  process.env.OPENCODE_CONFIG_DIR = path.join(root, "config", "awmate")
   delete process.env.OPENCODE_CONFIG
   delete process.env.OPENCODE_CONFIG_CONTENT
   process.env.AWMATE_RUNTIME_ROOT = root

@@ -79,7 +79,8 @@ export const discover = Effect.fn("ConfigDiscovery.discover")(function* (options
     globalRoots.slice(0, configDirectories.length).includes(current) || options?.project === false
       ? []
       : yield* fs.up({ targets: ["."], start: location.directory }).pipe(Effect.orDie)
-  const candidates = [".claude", ".agents", ".opencode", ...names.toReversed()]
+  // Modified for AWMate: read `.awmate` first and keep `.opencode` as a fallback for existing projects.
+  const candidates = [".claude", ".agents", ".awmate", ".opencode", ...names.toReversed()]
   const discovered = yield* Effect.forEach(
     directories,
     (directory) =>
@@ -140,9 +141,13 @@ export const discover = Effect.fn("ConfigDiscovery.discover")(function* (options
     preferences,
     global: globalEnabled ? globalDirectory : undefined,
     explicit: options?.file ? AbsolutePath.make(path.resolve(options.file)) : undefined,
-    direct: visible.filter((item) => ![".agents", ".claude", ".opencode"].includes(path.basename(item))).toReversed(),
+    direct: visible
+      .filter((item) => ![".agents", ".claude", ".awmate", ".opencode"].includes(path.basename(item)))
+      .toReversed(),
     project: yield* Effect.forEach(
-      visibleEntries.filter((entry) => path.basename(entry.item) === ".opencode").toReversed(),
+      visibleEntries
+        .filter((entry) => [".awmate", ".opencode"].includes(path.basename(entry.item)))
+        .toReversed(),
       (entry) =>
         entry.missing
           ? Effect.succeed({ path: entry.item, present: false })

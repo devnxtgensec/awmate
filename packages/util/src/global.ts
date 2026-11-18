@@ -9,7 +9,39 @@ import { roots } from "#global-roots"
 import { Flock } from "./flock.js"
 import { makeGlobalNode } from "./effect/app-node.js"
 
-const app = "opencode"
+const app = "awmate"
+// Modified for AWMate: earlier builds stored everything under the upstream app name.
+const legacyApp = "opencode"
+
+// Copy the legacy directories once, before any path is used, so a rebrand does not lose sessions,
+// credentials or configuration. The repository cache and logs are skipped: they are large and
+// regenerable, and copying them synchronously would stall startup.
+function migrateLegacyRoots() {
+  const legacy = roots(legacyApp)
+  const current = roots(app)
+
+  for (const key of ["data", "config", "state"] as const) {
+    const source = legacy[key]
+    const target = current[key]
+
+    if (!source || !target || source === target) continue
+    if (!fs.existsSync(source) || fs.existsSync(target)) continue
+
+    try {
+      fs.cpSync(source, target, {
+        recursive: true,
+        force: false,
+        errorOnExist: false,
+        filter: (entry) => !entry.includes(`${path.sep}repos`) && !entry.includes(`${path.sep}log`),
+      })
+    } catch {
+      // Leave the legacy directory in place; the next launch retries.
+    }
+  }
+}
+
+migrateLegacyRoots()
+
 const { data, cache, config, state, tmp } = roots(app)
 
 const paths = {

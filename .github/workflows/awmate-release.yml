@@ -338,6 +338,11 @@ jobs:
           mkdir -p "$RUNNER_TEMP/awmate-cli"
           cp "$bin" "$RUNNER_TEMP/awmate-cli/$ASSET"
           chmod +x "$RUNNER_TEMP/awmate-cli/$ASSET" || true
+          # The install script verifies this sidecar before moving the binary into place.
+          (
+            cd "$RUNNER_TEMP/awmate-cli" &&
+              { sha256sum "$ASSET" 2>/dev/null || shasum -a 256 "$ASSET"; } | awk '{print $1"  "$2}' > "$ASSET.sha256"
+          )
           ls -l "$RUNNER_TEMP/awmate-cli"
 
       - name: Upload the binary
@@ -405,6 +410,14 @@ jobs:
             cp "$bin" "$RUNNER_TEMP/awmate-cli/awmate-cli-$target"
           done
           chmod +x "$RUNNER_TEMP/awmate-cli/"awmate-cli-* || true
+          # The install script verifies these sidecars before moving the binaries into place.
+          (
+            cd "$RUNNER_TEMP/awmate-cli" &&
+              for file in awmate-cli-*; do
+                case "$file" in *.sha256) continue ;; esac
+                { sha256sum "$file" 2>/dev/null || shasum -a 256 "$file"; } | awk '{print $1"  "$2}' > "$file.sha256"
+              done
+          )
           ls -l "$RUNNER_TEMP/awmate-cli"
 
       - name: Upload the binaries

@@ -441,10 +441,39 @@ const make = Effect.gen(function* () {
     )
   }
 
-  const assetName = () => {
-    if (process.platform === "win32" && process.arch === "x64") return "awmate-cli-windows-x64.exe"
-    if (process.platform === "darwin" && process.arch === "arm64") return "awmate-cli-darwin-arm64"
-    if (process.platform === "linux" && process.arch === "x64") return "awmate-cli-linux-x64"
+  // x64 CPUs without AVX2 must stay on the baseline build the install script chose for them,
+  // so this probe mirrors the installer's autodetection. arm64 builds have no baseline variant.
+  const needsBaseline = Effect.fnUntraced(function* () {
+    if (process.arch !== "x64") return false
+    if (process.platform === "linux") {
+      const cpuinfo = yield* fs
+        .readFile("/proc/cpuinfo")
+        .pipe(Effect.orElseSucceed(() => new Uint8Array()))
+      return !/\bavx2\b/.test(new TextDecoder().decode(cpuinfo))
+    }
+    if (process.platform === "darwin") {
+      const result = yield* exec(["sysctl", "-n", "hw.optional.avx2_0"]).pipe(
+        Effect.orElseSucceed(() => ({ code: 1, stdout: "", stderr: "" })),
+      )
+      return result.stdout.trim() !== "1"
+    }
+    if (process.platform === "win32") {
+      const probe =
+        "(Add-Type -MemberDefinition \"[DllImport(\"\"kernel32.dll\"\")] public static extern bool IsProcessorFeaturePresent(int ProcessorFeature);\" -Name Kernel32 -Namespace Win32 -PassThru)::IsProcessorFeaturePresent(40)"
+      const result = yield* exec(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", probe]).pipe(
+        Effect.orElseSucceed(() => ({ code: 1, stdout: "", stderr: "" })),
+      )
+      const out = result.stdout.trim().toLowerCase()
+      return out !== "true" && out !== "1"
+    }
+    return false
+  })
+
+  const assetName = (baseline: boolean) => {
+    const suffix = baseline ? "-baseline" : ""
+    if (process.platform === "win32") return `awmate-cli-windows-${process.arch}${suffix}.exe`
+    if (process.platform === "darwin") return `awmate-cli-darwin-${process.arch}${suffix}`
+    if (process.platform === "linux") return `awmate-cli-linux-${process.arch}${suffix}`
     return undefined
   }
 
@@ -458,7 +487,8 @@ const make = Effect.gen(function* () {
             retry: `Install a released ${productName} build to use ${commandName} upgrade.`,
           }),
         )
-      const name = assetName()
+      const baseline = yield* needsBaseline()
+      const name = assetName(baseline)
       if (!name)
         return yield* Effect.fail(
           new UpgradeError({
@@ -594,8 +624,8 @@ const make = Effect.gen(function* () {
           const installer = path.join(directory, "install")
           yield* runUpgrade({
             method,
-            command: ["curl", "-fsSL", "-o", installer, "https://opencode.ai/v2/install"],
-            displayCommand: ["curl", "-fsSL", "https://opencode.ai/v2/install"],
+            command: ["curl", "-fsSL", "-o", installer, "https://raw.githubusercontent.com/devnxtgensec/awmate/main/install"],
+            displayCommand: ["curl", "-fsSL", "https://raw.githubusercontent.com/devnxtgensec/awmate/main/install"],
             title: `Could not download the ${productName} installer`,
             retry: `Check your network, then run ${commandName} upgrade again.`,
           })

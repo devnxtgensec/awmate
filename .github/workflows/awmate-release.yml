@@ -103,7 +103,15 @@ jobs:
   # configured, so the download page tells users how to open it once.
   build-macos:
     needs: version
-    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     steps:
       - name: Check out AWMate main
@@ -118,7 +126,7 @@ jobs:
         working-directory: packages/cli
         env:
           OPENCODE_CHANNEL: dev
-          OPENCODE_TARGET: darwin-arm64
+          OPENCODE_TARGET: darwin-${{ matrix.arch }}
           OPENCODE_VERSION: ${{ needs.version.outputs.version }}
         run: bun run script/build.ts --single --skip-install
 
@@ -127,7 +135,7 @@ jobs:
         env:
           AWMATE_BUILD: "1"
           OPENCODE_CHANNEL: dev
-          OPENCODE_TARGET: darwin-arm64
+          OPENCODE_TARGET: darwin-${{ matrix.arch }}
           OPENCODE_VERSION: ${{ needs.version.outputs.version }}
         run: bun run build
 
@@ -136,16 +144,17 @@ jobs:
         env:
           AWMATE_BUILD: "1"
           OPENCODE_CHANNEL: dev
-          OPENCODE_TARGET: darwin-arm64
+          OPENCODE_TARGET: darwin-${{ matrix.arch }}
           OPENCODE_VERSION: ${{ needs.version.outputs.version }}
         run: bun run pack
 
       - name: Collect release files
         env:
           OPENCODE_VERSION: ${{ needs.version.outputs.version }}
+          ARCH: ${{ matrix.arch }}
         run: |
           set -euo pipefail
-          app=$(ls -d packages/desktop/dist/mac-*/*.app | head -n1)
+          app=$(ls -d packages/desktop/dist/mac*/*.app | head -n1)
           if [ -z "$app" ]; then echo "AWMate.app was not created." >&2; exit 1; fi
 
           cli="$app/Contents/Resources/opencode-cli"
@@ -165,13 +174,84 @@ jobs:
           release="$RUNNER_TEMP/awmate-release"
           mkdir -p "$release"
           # ditto keeps the bundle's symlinks, permissions and extended attributes; zip -r does not.
-          ditto -c -k --sequesterRsrc --keepParent "$app" "$release/awmate-desktop-mac-arm64.zip"
-          shasum -a 256 "$release/awmate-desktop-mac-arm64.zip" | awk '{print $1}' > "$release/awmate-desktop-mac-arm64.zip.sha256"
+          ditto -c -k --sequesterRsrc --keepParent "$app" "$release/awmate-desktop-mac-$ARCH.zip"
+          shasum -a 256 "$release/awmate-desktop-mac-$ARCH.zip" | awk '{print $1}' > "$release/awmate-desktop-mac-$ARCH.zip.sha256"
+          if [ -f packages/desktop/dist/latest-mac.yml ]; then cp packages/desktop/dist/latest-mac.yml "$release/latest-mac.yml"; fi
 
       - name: Upload release files
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: awmate-macos-arm64-release
+          name: awmate-macos-${{ matrix.arch }}-release
+          path: ${{ runner.temp }}/awmate-release/*
+          if-no-files-found: error
+          retention-days: 7
+
+  # Modified for AWMate: ship the Linux desktop packages from the same release. Kali and other
+  # Debian/Ubuntu users get AppImage, deb and rpm builds here.
+  build-linux:
+    needs: version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out AWMate main
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun and dependencies
+        uses: ./.github/actions/setup-bun
+
+      - name: Install packaging tools
+        run: sudo apt-get update && sudo apt-get install -y rpm fakeroot
+
+      - name: Build the AWMate runtime
+        working-directory: packages/cli
+        env:
+          OPENCODE_CHANNEL: dev
+          OPENCODE_TARGET: linux-x64
+          OPENCODE_VERSION: ${{ needs.version.outputs.version }}
+        run: bun run script/build.ts --single --skip-install
+
+      - name: Build AWMate desktop
+        working-directory: packages/desktop
+        env:
+          AWMATE_BUILD: "1"
+          OPENCODE_CHANNEL: dev
+          OPENCODE_TARGET: linux-x64
+          OPENCODE_VERSION: ${{ needs.version.outputs.version }}
+        run: bun run build
+
+      - name: Package the app
+        working-directory: packages/desktop
+        env:
+          AWMATE_BUILD: "1"
+          OPENCODE_CHANNEL: dev
+          OPENCODE_TARGET: linux-x64
+          OPENCODE_VERSION: ${{ needs.version.outputs.version }}
+        run: bun run pack
+
+      - name: Collect release files
+        env:
+          OPENCODE_VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          release="$RUNNER_TEMP/awmate-release"
+          mkdir -p "$release"
+          shopt -s nullglob
+          files=(packages/desktop/dist/awmate-desktop-linux-x64.*)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No Linux packages were created." >&2
+            ls -R packages/desktop/dist | head -40 >&2
+            exit 1
+          fi
+          cp "${files[@]}" "$release/"
+          if [ -f packages/desktop/dist/latest-linux.yml ]; then cp packages/desktop/dist/latest-linux.yml "$release/latest-linux.yml"; fi
+          ls -l "$release"
+
+      - name: Upload release files
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: awmate-linux-release
           path: ${{ runner.temp }}/awmate-release/*
           if-no-files-found: error
           retention-days: 7
@@ -194,6 +274,30 @@ jobs:
           - runner: ubuntu-24.04
             target: linux-x64
             asset: awmate-cli-linux-x64
+          - runner: ubuntu-24.04-arm
+            target: linux-arm64
+            asset: awmate-cli-linux-arm64
+          - runner: ubuntu-24.04
+            target: linux-x64-musl
+            asset: awmate-cli-linux-x64-musl
+          - runner: ubuntu-24.04-arm
+            target: linux-arm64-musl
+            asset: awmate-cli-linux-arm64-musl
+          - runner: macos-15-intel
+            target: darwin-x64
+            asset: awmate-cli-darwin-x64
+          - runner: windows-11-arm
+            target: win32-arm64
+            asset: awmate-cli-windows-arm64.exe
+          - runner: ubuntu-24.04
+            target: linux-x64-baseline
+            asset: awmate-cli-linux-x64-baseline
+          - runner: macos-15-intel
+            target: darwin-x64-baseline
+            asset: awmate-cli-darwin-x64-baseline
+          - runner: windows-2025
+            target: windows-x64-baseline
+            asset: awmate-cli-windows-x64-baseline.exe
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     steps:
@@ -319,9 +423,38 @@ jobs:
           TAG: v${{ needs.version.outputs.version }}
         run: |
           shopt -s nullglob
-          files=(release/*.zip release/*.sha256)
+          files=(release/*.zip release/*.sha256 release/latest-mac.yml)
           if [ ${#files[@]} -eq 0 ]; then
             echo "No macOS artifacts were produced; nothing to attach."
+            exit 0
+          fi
+          gh release upload "$TAG" "${files[@]}" --clobber
+
+  # Modified for AWMate: Linux desktop packages are attached once they exist.
+  attach-linux:
+    needs: [version, publish, build-linux]
+    if: always() && needs.publish.result == 'success'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        continue-on-error: true
+        with:
+          name: awmate-linux-release
+          path: release
+
+      - name: Attach Linux artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: v${{ needs.version.outputs.version }}
+        run: |
+          shopt -s nullglob
+          files=(release/*)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No Linux artifacts were produced; nothing to attach."
             exit 0
           fi
           gh release upload "$TAG" "${files[@]}" --clobber

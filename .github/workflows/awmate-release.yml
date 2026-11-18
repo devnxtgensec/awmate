@@ -277,12 +277,6 @@ jobs:
           - runner: ubuntu-24.04-arm
             target: linux-arm64
             asset: awmate-cli-linux-arm64
-          - runner: ubuntu-24.04
-            target: linux-x64-musl
-            asset: awmate-cli-linux-x64-musl
-          - runner: ubuntu-24.04-arm
-            target: linux-arm64-musl
-            asset: awmate-cli-linux-arm64-musl
           - runner: macos-15-intel
             target: darwin-x64
             asset: awmate-cli-darwin-x64

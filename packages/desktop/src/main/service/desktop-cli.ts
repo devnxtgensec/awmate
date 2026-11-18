@@ -48,7 +48,7 @@ export const layer = Layer.effect(
       const home = app.getPath("home")
       yield* runInstaller(cli.binary, home)
 
-      return path.join(home, ".opencode", "bin", "opencode")
+      return path.join(home, ".awmate", "bin", "awmate")
     })
 
     return Service.of({ resolve, install })

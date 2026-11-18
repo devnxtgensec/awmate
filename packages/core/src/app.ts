@@ -20,7 +20,7 @@ export function make(input: Partial<Info> = {}): Info {
 }
 
 export function useragent(app: Info) {
-  return `opencode/${app.channel}/${app.version}/${app.name}`
+  return `awmate/${app.channel}/${app.version}/${app.name}`
 }
 
 export const layer = (input?: Partial<Info>) => Layer.succeed(Service, make(input))

@@ -30,7 +30,7 @@ export type Product = "opencode" | "console" | "data" | "docs"
  * The OpenCode products, in the menu's order, each at a `path` on opencode.ai (the host's `link` resolves it).
  */
 export const products: { id: Product; name: string; path: string }[] = [
-  { id: "opencode", name: "OpenCode", path: "/" },
+  { id: "opencode", name: "AWMate", path: "/" },
   { id: "console", name: "Console", path: "/console" },
   { id: "data", name: "Data", path: "/data" },
   { id: "docs", name: "Docs", path: "/docs" },

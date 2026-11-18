@@ -194,6 +194,14 @@ const getBase = (appId: string): Configuration => {
     linux: {
       icon: `resources/icons`,
       category: "Development",
+      ...(process.env.AWMATE_BUILD === "1"
+        ? {
+            maintainer: "NxtGenSec <support@nxtgensec.org>",
+            vendor: "NxtGenSec",
+            synopsis: "Your Assistive Workmate",
+            description: "AWMate is an assistive workmate for writing, running and reviewing code.",
+          }
+        : {}),
       executableName: linuxExecutableName(appId),
       // Derive the installed `.desktop` filename from `desktopName`
       // (`ai.opencode.desktop.desktop` for prod) instead of `executableName`,
@@ -244,7 +252,7 @@ export function getConfig() {
               },
         deb: { fpm: [...previewCompressionFpm("deb"), metainfoFpm(appId)] },
         rpm: {
-          packageName: "opencode-dev",
+          packageName: awmate ? "awmate-desktop" : "opencode-dev",
           fpm: [rpmNoBuildIdLinksFpm, ...previewCompressionFpm("rpm"), metainfoFpm(appId)],
         },
       }

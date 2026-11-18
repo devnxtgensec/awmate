@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>ai.awmate.desktop</id>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+
+  <name>AWMate</name>
+  <summary>Your Assistive Workmate</summary>
+
+  <developer id="org.nxtgensec">
+    <name>NxtGenSec Assistive Workmate Labs</name>
+  </developer>
+
+  <description>
+    <p>
+      AWMate is an assistive workmate for writing, running and reviewing code with the AWMate Gateway or your own model
+      provider.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">ai.awmate.desktop.desktop</launchable>
+
+  <content_rating type="oars-1.1" />
+
+  <url type="homepage">https://awmate.nxtgensec.org</url>
+  <url type="bugtracker">https://github.com/devnxtgensec/awmate/issues</url>
+  <url type="vcs-browser">https://github.com/devnxtgensec/awmate</url>
+</component>

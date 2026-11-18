@@ -226,7 +226,7 @@ function buildIssueURL(message: string, stack: string, version: string) {
   const url = new URL(
     awmate
       ? "https://github.com/devnxtgensec/awmate/issues/new"
-      : "https://github.com/anomalyco/opencode/issues/new?template=bug-report.yml",
+      : "https://github.com/devnxtgensec/awmate/issues/new?template=bug-report.yml",
   )
   url.searchParams.set("title", `TUI crash: ${message}`)
   if (!awmate) {

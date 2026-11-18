@@ -640,14 +640,14 @@ function App() {
     if (!terminalTitleEnabled()) return
 
     if (route.data.type === "home") {
-      setTerminalTitle(renderer, "OpenCode")
+      setTerminalTitle(renderer, "AWMate")
       return
     }
 
     if (route.data.type === "session") {
       const title = session?.title
       if (!title || isFallbackTitle(title)) {
-        setTerminalTitle(renderer, "OpenCode")
+        setTerminalTitle(renderer, "AWMate")
         return
       }
 
@@ -1063,7 +1063,7 @@ function App() {
         ? [
             {
               name: "opencode.update",
-              title: "Update OpenCode",
+              title: "Update AWMate",
               slash: { name: "update" },
               run: () => updater.open?.("manual"),
               category: "System",
@@ -1169,7 +1169,7 @@ function App() {
         name: "docs.open",
         title: "Open docs",
         run: () => {
-          openUrl("https://opencode.ai/docs").catch(() => {})
+          openUrl("https://awmate.nxtgensec.org").catch(() => {})
           dialog.clear()
         },
         category: "System",

@@ -100,6 +100,36 @@ describe("ConfigDiscovery.discover", () => {
     ),
   )
 
+  it.live("prefers awmate.json over opencode.json and keeps the legacy file as a fallback", () =>
+    Effect.acquireDisposable(Effect.promise(() => tmpdir())).pipe(
+      Effect.flatMap((tmp) =>
+        Effect.gen(function* () {
+          const root = yield* Effect.promise(() => fs.realpath(tmp.path))
+          const project = path.join(root, "project")
+          yield* Effect.promise(async () => {
+            await fs.mkdir(project, { recursive: true })
+            await fs.writeFile(path.join(project, "awmate.json"), "{}")
+            await fs.writeFile(path.join(project, "opencode.json"), "{}")
+          })
+
+          const sources = yield* discoverWith(root, project)
+          const direct = sources.direct.filter((item) => inFixture(project, item))
+
+          expect(direct.indexOf(AbsolutePath.make(path.join(project, "awmate.json")))).toBeLessThan(
+            direct.indexOf(AbsolutePath.make(path.join(project, "opencode.json"))),
+          )
+        }),
+      ),
+    ),
+  )
+
+  it.live("names the AWMate system directory and keeps the upstream one as a fallback", () =>
+    Effect.sync(() => {
+      expect(String(ConfigDiscovery.systemDirectory("linux", {}))).toBe("/etc/awmate")
+      expect(String(ConfigDiscovery.legacySystemDirectory("linux", {}))).toBe("/etc/opencode")
+    }),
+  )
+
   it.live("falls back to direct candidate probes when listing an ancestor directory is denied", () =>
     Effect.acquireDisposable(Effect.promise(() => tmpdir())).pipe(
       Effect.flatMap((tmp) =>

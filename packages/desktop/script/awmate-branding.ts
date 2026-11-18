@@ -16,6 +16,9 @@ export function awmateBranding(): Plugin {
 
         if (key === "settings.about.website") return indent + JSON.stringify(key) + separator + '"awmate.nxtgensec.org"'
 
+        if (key === "settings.extensions.manageConfig" || key === "error.chain.checkConfig")
+          return indent + JSON.stringify(key) + separator + '"' + value.replaceAll("opencode.json", "awmate.json") + '"'
+
         if (!productKeys.test(key) && !value.includes(" models in OpenCode")) return line
 
         return indent + JSON.stringify(key) + separator + '"' + value.replace(/OpenCode(?! (?:Go|Free|Console))/gi, "AWMate") + '"'

@@ -9,7 +9,10 @@ import { Location } from "../location.js"
 import { AbsolutePath } from "../schema.js"
 import type { Options } from "../config.js"
 
-export const names = ["opencode.json", "opencode.jsonc"]
+export const names = ["awmate.json", "awmate.jsonc"]
+/** Upstream config file names, read after the AWMate names so existing projects keep working. */
+export const legacyNames = ["opencode.json", "opencode.jsonc"]
+export const allNames = [...names, ...legacyNames]
 
 /** Eligible sources in priority order, including paths that may appear later. */
 export interface Sources {
@@ -24,8 +27,18 @@ export interface Sources {
   readonly agents: readonly AbsolutePath[]
 }
 
-/** Platform system configuration directory (`/Library/Application Support/opencode`, `/etc/opencode`, `%ProgramData%\opencode`). */
+/** Platform system configuration directory (`/Library/Application Support/awmate`, `/etc/awmate`, `%ProgramData%\awmate`). */
 export function systemDirectory(platform: NodeJS.Platform = process.platform, env: NodeJS.ProcessEnv = process.env) {
+  if (platform === "darwin") return AbsolutePath.make("/Library/Application Support/awmate")
+  if (platform === "win32") return AbsolutePath.make(path.join(env.ProgramData || "C:\\ProgramData", "awmate"))
+  return AbsolutePath.make("/etc/awmate")
+}
+
+/** The upstream system directory, read when the AWMate directory is absent. */
+export function legacySystemDirectory(
+  platform: NodeJS.Platform = process.platform,
+  env: NodeJS.ProcessEnv = process.env,
+) {
   if (platform === "darwin") return AbsolutePath.make("/Library/Application Support/opencode")
   if (platform === "win32") return AbsolutePath.make(path.join(env.ProgramData || "C:\\ProgramData", "opencode"))
   return AbsolutePath.make("/etc/opencode")
@@ -34,6 +47,8 @@ export function systemDirectory(platform: NodeJS.Platform = process.platform, en
 /** macOS MDM managed preferences plists, most specific first; the first one present wins. */
 export function preferencePaths(user: string) {
   return [
+    AbsolutePath.make(path.join("/Library/Managed Preferences", user, "ai.awmate.managed.plist")),
+    AbsolutePath.make("/Library/Managed Preferences/ai.awmate.managed.plist"),
     AbsolutePath.make(path.join("/Library/Managed Preferences", user, "ai.opencode.managed.plist")),
     AbsolutePath.make("/Library/Managed Preferences/ai.opencode.managed.plist"),
   ]
@@ -60,11 +75,15 @@ export const discover = Effect.fn("ConfigDiscovery.discover")(function* (options
   const fs = yield* FSUtil.Service
   const global = yield* Global.Service
   const location = yield* Location.Service
-  const system = (() => {
-    if (options?.system === false) return
+  const system = yield* Effect.gen(function* () {
+    if (options?.system === false) return undefined
     if (typeof options?.system === "string") return AbsolutePath.make(path.resolve(options.system))
-    return systemDirectory()
-  })()
+    const preferred = systemDirectory()
+    if (yield* fs.isDir(preferred).pipe(Effect.orElseSucceed(() => false))) return preferred
+    const legacy = legacySystemDirectory()
+    if (yield* fs.isDir(legacy).pipe(Effect.orElseSucceed(() => false))) return legacy
+    return preferred
+  })
   const globalDirectory = AbsolutePath.make(global.config)
   const globalAgentsDirectory = AbsolutePath.make(path.join(global.home, ".agents"))
   const globalClaudeDirectory = AbsolutePath.make(path.join(global.home, ".claude"))
@@ -80,7 +99,7 @@ export const discover = Effect.fn("ConfigDiscovery.discover")(function* (options
       ? []
       : yield* fs.up({ targets: ["."], start: location.directory }).pipe(Effect.orDie)
   // Modified for AWMate: read `.awmate` first and keep `.opencode` as a fallback for existing projects.
-  const candidates = [".claude", ".agents", ".awmate", ".opencode", ...names.toReversed()]
+  const candidates = [".claude", ".agents", ".awmate", ".opencode", ...legacyNames.toReversed(), ...names.toReversed()]
   const discovered = yield* Effect.forEach(
     directories,
     (directory) =>
@@ -115,7 +134,7 @@ export const discover = Effect.fn("ConfigDiscovery.discover")(function* (options
 
   const globalEnabled = options?.global !== false
   const globalFiles = yield* Effect.forEach(
-    configDirectories.flatMap((directory) => names.map((name) => path.join(directory, name))),
+    configDirectories.flatMap((directory) => allNames.map((name) => path.join(directory, name))),
     (file) => fs.resolve(file),
     { concurrency: "unbounded" },
   )

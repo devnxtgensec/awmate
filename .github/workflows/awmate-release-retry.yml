@@ -1,0 +1,43 @@
+# Modified for AWMate: GitHub's hosted macOS fleet intermittently fails to hand jobs to a runner
+# ("The job was not acquired by Runner of type hosted even after multiple attempts") and cancels
+# them after ~15 minutes in queue — run 44299283834 lost four macOS jobs this way with zero steps
+# executed. No step-level retry can help because the job never starts, so this watchdog re-runs
+# only queue-cancelled jobs of the release run, twice at most, after a cooldown.
+name: AWMate release retry
+
+on:
+  workflow_run:
+    workflows: ["AWMate Windows release"]
+    types: [completed]
+
+permissions:
+  actions: write
+
+concurrency:
+  group: awmate-release-retry
+  cancel-in-progress: false
+
+jobs:
+  retry:
+    # Only a completed run whose conclusion is failure can be re-run; a cancelled run was
+    # superseded by a newer push on purpose and must not come back.
+    if: github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.run_attempt < 3
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Re-run the queue-cancelled jobs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          cancelled=$(gh api "repos/$GH_REPO/actions/runs/$RUN_ID/jobs" --paginate --jq '[.jobs[] | select(.conclusion == "cancelled")] | length')
+          if [ "$cancelled" -eq 0 ]; then
+            echo "No cancelled jobs; genuine failures are not retried automatically."
+            exit 0
+          fi
+          echo "$cancelled job(s) were cancelled; waiting for the hosted runner fleet to recover..."
+          sleep 300
+          gh api -X POST "repos/$GH_REPO/actions/runs/$RUN_ID/rerun-failed-jobs"
+          echo "Re-run requested for the failed jobs of $RUN_ID."

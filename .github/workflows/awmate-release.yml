@@ -107,8 +107,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Cross-build both arches on the Intel runner: the arm64 macOS runner kept cancelling
-          # the desktop job, while the CLI job on the same image succeeds.
+          # Cross-build both arches on the Intel runner. The macOS hosted fleet intermittently
+          # cancels jobs with "The job was not acquired by Runner of type hosted even after
+          # multiple attempts" (see awmate-release-retry.yml); staying on one Intel image keeps
+          # the two desktop jobs on the same, currently less contested runner type.
           - runner: macos-15-intel
             arch: arm64
           - runner: macos-15-intel
@@ -260,7 +262,7 @@ jobs:
 
   # Modified for AWMate: publish the standalone CLI so `curl | bash` and the PowerShell installer work.
   # Only native targets build here: cross-compiling needs the target's native pty package, which bun
-  # skips on a different host.
+  # skips on a different host. The darwin targets build in build-cli-darwin below.
   build-cli:
     needs: version
     strategy:
@@ -270,27 +272,18 @@ jobs:
           - runner: windows-2025
             target: windows-x64
             asset: awmate-cli-windows-x64.exe
-          - runner: macos-15
-            target: darwin-arm64
-            asset: awmate-cli-darwin-arm64
           - runner: ubuntu-24.04
             target: linux-x64
             asset: awmate-cli-linux-x64
           - runner: ubuntu-24.04-arm
             target: linux-arm64
             asset: awmate-cli-linux-arm64
-          - runner: macos-15-intel
-            target: darwin-x64
-            asset: awmate-cli-darwin-x64
           - runner: windows-11-arm
             target: windows-arm64
             asset: awmate-cli-windows-arm64.exe
           - runner: ubuntu-24.04
             target: linux-x64-baseline
             asset: awmate-cli-linux-x64-baseline
-          - runner: macos-15-intel
-            target: darwin-x64-baseline
-            asset: awmate-cli-darwin-x64-baseline
           - runner: windows-2025
             target: windows-x64-baseline
             asset: awmate-cli-windows-x64-baseline.exe
@@ -342,6 +335,63 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # Modified for AWMate: all three darwin CLI targets build in one job. Every macOS job is a separate
+  # hosted-runner acquisition, and GitHub's macOS fleet intermittently cancels queued jobs with
+  # "The job was not acquired by Runner of type hosted even after multiple attempts" (run
+  # 44299283834 lost four macOS jobs this way before any step ran), so the release requests as few
+  # macOS runners as possible. awmate-release-retry.yml re-runs such jobs automatically.
+  build-cli-darwin:
+    needs: version
+    runs-on: macos-15-intel
+    timeout-minutes: 60
+    steps:
+      - name: Check out AWMate main
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun and dependencies
+        uses: ./.github/actions/setup-bun
+
+      - name: Build the CLI for all darwin targets
+        working-directory: packages/cli
+        env:
+          AWMATE_CLI_NAME: awmate
+          AWMATE_CLI_TITLE: AWMate
+          OPENCODE_CHANNEL: dev
+          OPENCODE_VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          for target in darwin-arm64 darwin-x64 darwin-x64-baseline; do
+            echo "Building $target..."
+            OPENCODE_TARGET="$target" bun run script/build.ts --single --skip-install
+          done
+
+      - name: Collect the binaries
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/awmate-cli"
+          for target in darwin-arm64 darwin-x64 darwin-x64-baseline; do
+            dir="packages/cli/dist/cli-$target/bin"
+            if [ -f "$dir/opencode.exe" ]; then bin="$dir/opencode.exe"; else bin="$dir/opencode"; fi
+            if [ ! -f "$bin" ]; then
+              echo "CLI binary not found for $target" >&2
+              ls -R packages/cli/dist | head -40 >&2
+              exit 1
+            fi
+            cp "$bin" "$RUNNER_TEMP/awmate-cli/awmate-cli-$target"
+          done
+          chmod +x "$RUNNER_TEMP/awmate-cli/"awmate-cli-* || true
+          ls -l "$RUNNER_TEMP/awmate-cli"
+
+      - name: Upload the binaries
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: awmate-cli-darwin
+          path: ${{ runner.temp }}/awmate-cli/*
+          if-no-files-found: error
+          retention-days: 7
+
   publish:
     needs: [version, build-windows]
     # The Windows release must never wait on a macOS runner.
@@ -368,7 +418,7 @@ jobs:
 
   # Modified for AWMate: CLI binaries are attached once they exist, without holding up the release.
   attach-cli:
-    needs: [version, publish, build-cli]
+    needs: [version, publish, build-cli, build-cli-darwin]
     if: always() && needs.publish.result == 'success'
     runs-on: ubuntu-24.04
     permissions:

@@ -238,7 +238,7 @@ jobs:
           release="$RUNNER_TEMP/awmate-release"
           mkdir -p "$release"
           shopt -s nullglob
-          files=(packages/desktop/dist/awmate-desktop-linux-x64.*)
+          files=(packages/desktop/dist/awmate-desktop-linux-*)
           if [ ${#files[@]} -eq 0 ]; then
             echo "No Linux packages were created." >&2
             ls -R packages/desktop/dist | head -40 >&2
@@ -281,7 +281,7 @@ jobs:
             target: darwin-x64
             asset: awmate-cli-darwin-x64
           - runner: windows-11-arm
-            target: win32-arm64
+            target: windows-arm64
             asset: awmate-cli-windows-arm64.exe
           - runner: ubuntu-24.04
             target: linux-x64-baseline

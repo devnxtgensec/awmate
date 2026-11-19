@@ -6,6 +6,7 @@ import { Runtime } from "../../framework/runtime"
 import { Config } from "../../config"
 import { Context, Effect, FileSystem, Option, Queue, Schedule, Semaphore } from "effect"
 import { ServerConnection } from "../../services/server-connection"
+import { ServiceConfig } from "../../services/service-config"
 import { Updater } from "../../services/updater"
 import { UpdatePreflight } from "../../services/update-preflight"
 import { Npm } from "@opencode/util/npm"
@@ -25,12 +26,20 @@ export default Runtime.handler(Commands, (input) =>
     // AWMate account: first launch asks for the sign-in, then every session injects the gateway
     // provider through OPENCODE_CONFIG_CONTENT, which the background server inherits. Only runs on
     // an interactive terminal; the desktop sidecar arrives with its own config and skips this.
-    if (requestedServer === undefined && (process.stdout.isTTY || process.stdin.isTTY))
-      yield* Effect.tryPromise({
+    if (requestedServer === undefined && (process.stdout.isTTY || process.stdin.isTTY)) {
+      const outcome = yield* Effect.tryPromise({
         try: () =>
           ensureAccount((text) => process.stderr.write(`${text}\n`)),
         catch: (cause) => new Error(errorMessage(cause)),
-      }).pipe(Effect.ignore)
+      }).pipe(Effect.catch(() => Effect.succeed("failed" as const)))
+      // A sign-in that completed just now invalidates any background service started before the
+      // gateway config existed: stop it so the resolve below spawns a fresh one with the gateway.
+      if (outcome === "fresh-login") {
+        yield* Effect.logInfo("AWMate sign-in completed; restarting the background service")
+        const serviceOptions = yield* ServiceConfig.options()
+        yield* Service.stop({ file: serviceOptions.file, pty: "handoff" }).pipe(Effect.ignore)
+      }
+    }
     const preflight = UpdatePreflight.make()
     yield* Effect.addFinalizer(() => Effect.promise(() => preflight.close()))
     const serviceStarts = yield* Queue.unbounded<{

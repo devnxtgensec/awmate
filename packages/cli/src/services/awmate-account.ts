@@ -144,8 +144,10 @@ export async function prepareGateway(): Promise<PrepareResult> {
   return "applied"
 }
 
-/** Login when needed, then inject the gateway config. Never throws: the TUI must always start. */
-export async function ensureAccount(write: (text: string) => void): Promise<PrepareResult> {
+/** Login when needed, then inject the gateway config. Never throws: the TUI must always start.
+ * Returns "fresh-login" when a new sign-in just completed — the caller must then stop any running
+ * background service, which was started before the gateway config existed. */
+export async function ensureAccount(write: (text: string) => void): Promise<"applied" | "fresh-login" | "unsigned" | "unavailable"> {
   const prepared = await prepareGateway()
   if (prepared !== "unsigned") return prepared
   const outcome = await login(write, 120)
@@ -153,5 +155,6 @@ export async function ensureAccount(write: (text: string) => void): Promise<Prep
     write("Continuing without the AWMate Gateway. Run `awmate login` later to sign in.")
     return "unsigned"
   }
-  return prepareGateway()
+  const applied = await prepareGateway()
+  return applied === "applied" ? "fresh-login" : applied
 }

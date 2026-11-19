@@ -17,22 +17,42 @@ const PIXEL_GRID = [
 const CELL = 6
 const GAP = 6
 
+// Greedy maximal-rect merge: adjacent filled cells become one rect, so the letters render as solid
+// strokes with no seams between cells.
+function letterRects(letter: number[][], offsetX: number) {
+  const used = letter.map((row) => row.map(() => false))
+  const rects: Array<{ x: number; y: number; w: number; h: number }> = []
+  for (let r = 0; r < letter.length; r++) {
+    for (let c = 0; c < letter[r].length; c++) {
+      if (!letter[r][c] || used[r][c]) continue
+      let width = 1
+      while (c + width < letter[r].length && letter[r][c + width] && !used[r][c + width]) width++
+      let height = 1
+      grow: while (r + height < letter.length) {
+        for (let k = 0; k < width; k++) {
+          if (!letter[r + height][c + k] || used[r + height][c + k]) break grow
+        }
+        height++
+      }
+      for (let rr = r; rr < r + height; rr++) for (let cc = c; cc < c + width; cc++) used[rr][cc] = true
+      rects.push({ x: offsetX + c * CELL, y: r * CELL, w: width * CELL, h: height * CELL })
+    }
+  }
+  return rects
+}
+
 function PixelName() {
   const rects: Array<{ x: number; y: number; w: number; h: number }> = []
-  let x = 0
+  let offset = 0
   for (const letter of PIXEL_GRID) {
-    letter.forEach((row, rowIndex) => {
-      row.forEach((filled, col) => {
-        if (filled) rects.push({ x: x + col * CELL, y: rowIndex * CELL, w: CELL, h: CELL })
-      })
-    })
-    x += letter[0].length * CELL + GAP
+    rects.push(...letterRects(letter, offset))
+    offset += letter[0].length * CELL + GAP
   }
-  const width = x - GAP
+  const width = offset - GAP
   return (
     <svg viewBox={`0 0 ${width} ${4 * CELL}`} width={width * 2} height={4 * CELL * 2} class="text-v2-icon-icon-muted" aria-hidden="true">
       <For each={rects}>
-        {(rect) => <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill="currentColor" />}
+        {(rect) => <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} rx={0.8} fill="currentColor" />}
       </For>
     </svg>
   )

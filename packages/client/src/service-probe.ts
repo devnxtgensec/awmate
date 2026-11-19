@@ -37,7 +37,8 @@ function fail(message: string) {
 
 /** The default registration file. */
 export function fallback() {
-  return join(process.env["XDG_STATE_HOME"] ?? join(homedir(), ".local", "state"), "opencode", "service.json")
+  // Modified for AWMate: match the CLI's Global.state namespace after the data-directory migration.
+  return join(process.env["XDG_STATE_HOME"] ?? join(homedir(), ".local", "state"), "awmate", "service.json")
 }
 
 /** Whether two registrations describe the same service instance. */

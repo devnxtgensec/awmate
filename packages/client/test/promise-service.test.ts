@@ -8,9 +8,30 @@ import {
   stoppedExitCode,
 } from "./fixture/service-fixture"
 import { accelerate } from "./fixture/service-timing"
+import { join } from "node:path"
 
 const ensure = accelerate(Service.ensure)
 const stop = accelerate(Service.stop)
+
+// Modified for AWMate: default discovery must use the same namespace as the CLI.
+test("default discovery finds AWMate registration and ignores the legacy failed service", async () => {
+  await using fixture = await serviceFixture()
+  fixture.spawn("graceful")
+  await fixture.waitForFile()
+  const previous = process.env.XDG_STATE_HOME
+  process.env.XDG_STATE_HOME = fixture.directory
+  try {
+    const info = await Bun.file(fixture.registration).text()
+    await Bun.write(join(fixture.directory, "awmate", "service.json"), info)
+    await Bun.write(join(fixture.directory, "opencode", "service.json"), "{}")
+    expect(await Service.discover({ version: "test" })).toEqual(
+      expect.objectContaining({ url: expect.stringMatching(/^http:\/\//) }),
+    )
+  } finally {
+    if (previous === undefined) delete process.env.XDG_STATE_HOME
+    else process.env.XDG_STATE_HOME = previous
+  }
+})
 
 test("discovers a registered service", async () => {
   await using fixture = await serviceFixture()

@@ -3,15 +3,40 @@ import { prefersReducedMotion } from "@opencode/ui/motion"
 import { type Accessor, createEffect, For, onCleanup, onMount, Show } from "solid-js"
 import { PinSound } from "./pin-sound"
 
-// The pixel wordmark letters, one glyph block each - the same art the website's watermark carries.
-const PIXEL_LETTERS = [
-  ["█▀█", "███", "▀ ▀"],
-  ["█   █", "█ █ █", "▀ ▀ ▀"],
-  ["█▀█▀█", "█ █ █", "▀ ▀ ▀"],
-  ["█▀█", "███", "▀ ▀"],
-  ["███", " █ ", " █ "],
-  ["███", "█▀▀", "███"],
+// The pixel AWMATE name as filled-cell grids (4 rows tall). Drawn as SVG rects so it renders crisply
+// without depending on block-glyph font support.
+const PIXEL_GRID = [
+  [[0, 1, 1, 0], [1, 1, 1, 1], [1, 0, 0, 1], [1, 0, 0, 1]], // A
+  [[1, 0, 0, 0, 1], [1, 0, 0, 0, 1], [1, 0, 1, 0, 1], [1, 1, 1, 1, 1]], // W
+  [[1, 1, 1, 1, 1], [1, 0, 1, 0, 1], [1, 0, 1, 0, 1], [1, 0, 1, 0, 1]], // M
+  [[0, 1, 1, 0], [1, 1, 1, 1], [1, 0, 0, 1], [1, 0, 0, 1]], // A
+  [[1, 1, 1], [0, 1, 0], [0, 1, 0], [0, 1, 0]], // T
+  [[1, 1, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]], // E
 ]
+
+const CELL = 6
+const GAP = 6
+
+function PixelName() {
+  const rects: Array<{ x: number; y: number; w: number; h: number }> = []
+  let x = 0
+  for (const letter of PIXEL_GRID) {
+    letter.forEach((row, rowIndex) => {
+      row.forEach((filled, col) => {
+        if (filled) rects.push({ x: x + col * CELL, y: rowIndex * CELL, w: CELL, h: CELL })
+      })
+    })
+    x += letter[0].length * CELL + GAP
+  }
+  const width = x - GAP
+  return (
+    <svg viewBox={`0 0 ${width} ${4 * CELL}`} width={width * 2} height={4 * CELL * 2} class="text-v2-icon-icon-muted" aria-hidden="true">
+      <For each={rects}>
+        {(rect) => <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill="currentColor" />}
+      </For>
+    </svg>
+  )
+}
 import {
   LODGER_POP,
   selectWordmarkAnimating,
@@ -169,17 +194,13 @@ export function NewSessionWordmark(props: {
   play?: boolean
   sound?: () => boolean
 }) {
-  // Modified for AWMate: this screen has its own interactive OpenCode artwork. AWMate builds keep the
-  // brand logo and add the pixel wordmark beneath it, matching the website's watermark.
+  // Modified for AWMate: this screen has its own interactive OpenCode artwork. AWMate builds show a
+  // lockup - the brand logo beside the pixel AWMATE name, drawn as crisp SVG rects.
   if (import.meta.env.AWMATE_BUILD === "true") {
     return (
-      <div ref={props.ref} data-component="new-session-wordmark" class="flex flex-col items-center gap-5">
-        <img src="./awmate-logo.png" alt="AWMate" class="h-32 max-w-full object-contain" />
-        <div class="flex items-end gap-2 text-v2-icon-icon-muted select-none" aria-hidden="true">
-          <For each={PIXEL_LETTERS}>
-            {(letter) => <pre class="m-0 font-mono leading-[0.95]">{letter.join("\n")}</pre>}
-          </For>
-        </div>
+      <div ref={props.ref} data-component="new-session-wordmark" class="flex items-center justify-center gap-5">
+        <img src="./awmate-logo.png" alt="AWMate" class="h-20 w-auto object-contain" />
+        <PixelName />
       </div>
     )
   }

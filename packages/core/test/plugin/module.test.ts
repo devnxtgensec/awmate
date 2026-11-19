@@ -378,6 +378,11 @@ it.live("discovers exported specifiers from the resolved tree even when dist/ ex
     expect(pluginRuntimeLoaderCode("effect/schema/SchemaJITCompiler/enable", hostDiscovered)).toBe(
       '() => require("effect/schema/SchemaJITCompiler/enable")',
     )
+    // The bundle requires real package names; the @awmate/plugin alias emits @opencode/plugin requires.
+    expect(pluginRuntimeLoaderCode("@awmate/plugin", hostDiscovered)).toBe('() => require("@opencode/plugin")')
+    expect(pluginRuntimeLoaderCode("@awmate/plugin/promise", hostDiscovered)).toBe(
+      '() => require("@opencode/plugin/promise")',
+    )
 
     const loadAsync = createLoader(asyncModPath)
     const first = loadAsync()

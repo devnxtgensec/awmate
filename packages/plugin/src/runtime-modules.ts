@@ -74,10 +74,15 @@ export function discoverPluginRuntimeSpecifiers(
 }
 
 export function pluginRuntimeLoaderCode(specifier: string, entries: ReadonlyMap<string, string>) {
-  if (specifier.startsWith("effect/")) {
-    const slash = specifier.lastIndexOf("/")
-    const parent = specifier.slice(0, slash)
-    const member = specifier.slice(slash + 1)
+  // The bundle can only require real package names. @awmate/plugin is a runtime alias for
+  // @opencode/plugin (plugins may import either), so its loader requires the underlying module.
+  const required = specifier.startsWith("@awmate/plugin")
+    ? `@opencode/plugin${specifier.slice("@awmate/plugin".length)}`
+    : specifier
+  if (required.startsWith("effect/")) {
+    const slash = required.lastIndexOf("/")
+    const parent = required.slice(0, slash)
+    const member = required.slice(slash + 1)
     const parentResolved = entries.get(parent)
     const resolved = entries.get(specifier)
     if (
@@ -89,7 +94,7 @@ export function pluginRuntimeLoaderCode(specifier: string, entries: ReadonlyMap<
       return `() => require(${JSON.stringify(parent)})[${JSON.stringify(member)}]`
     }
   }
-  return `() => require(${JSON.stringify(specifier)})`
+  return `() => require(${JSON.stringify(required)})`
 }
 
 export function createLoader(resolved: string): RuntimeModuleLoader {

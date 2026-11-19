@@ -17,7 +17,7 @@ export const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60
 
 export class Config extends Context.Service<Config, Info>()("@opencode/ServerAuthConfig") {
   static configLayer(input: Pick<Info, "password">) {
-    return Layer.succeed(this, this.of({ ...input, username: "opencode" }))
+    return Layer.succeed(this, this.of({ ...input, username: "awmate" }))
   }
 
   static get layer() {
@@ -30,8 +30,12 @@ export function required(config: Info) {
 }
 
 // Session tokens issued by pairing links are accepted anywhere the password is.
+// Older clients send the legacy username; both are accepted so updates never break a running setup.
+const LEGACY_USERNAMES: ReadonlySet<string> = new Set(["opencode"])
+
 export function authorized(credentials: DecodedCredentials, config: Info) {
-  if (Option.isNone(config.password) || credentials.username !== config.username) return false
+  if (Option.isNone(config.password)) return false
+  if (credentials.username !== config.username && !LEGACY_USERNAMES.has(credentials.username)) return false
   const password = Redacted.value(credentials.password)
   return password === config.password.value || verifySession(password, config)
 }

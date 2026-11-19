@@ -63,6 +63,13 @@ export function discoverPluginRuntimeSpecifiers(
       }
     }
   }
+  // Plugins may import the SDK under the product name; both specifiers resolve to the same host modules.
+  for (const [specifier, resolved] of [...entries.entries()]) {
+    if (specifier.startsWith("@opencode/plugin")) {
+      const alias = `@awmate/plugin${specifier.slice("@opencode/plugin".length)}`
+      if (!entries.has(alias)) entries.set(alias, resolved)
+    }
+  }
   return entries
 }
 

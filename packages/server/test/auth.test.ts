@@ -2,8 +2,9 @@ import { expect, test } from "bun:test"
 import { ServerAuth } from "@opencode/server/auth"
 import { Option, Redacted } from "effect"
 
-test("accepts only the fixed opencode username", () => {
-  const config = { password: Option.some("secret"), username: "opencode" }
+test("accepts the awmate username and the legacy username", () => {
+  const config = { password: Option.some("secret"), username: "awmate" }
+  expect(ServerAuth.authorized({ username: "awmate", password: Redacted.make("secret") }, config)).toBe(true)
   expect(ServerAuth.authorized({ username: "opencode", password: Redacted.make("secret") }, config)).toBe(true)
   expect(ServerAuth.authorized({ username: "custom", password: Redacted.make("secret") }, config)).toBe(false)
 })

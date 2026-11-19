@@ -146,7 +146,7 @@ function makeRoutes<AuthError, AuthServices>(
     Mcp.node.replace(
       Mcp.configured({
         clientInfo: {
-          name: "opencode",
+          name: "awmate",
           version: options.app?.version ?? "unknown",
         },
       }),

@@ -2,7 +2,7 @@ import { app } from "electron"
 
 type Channel = "local" | "dev" | "beta" | "prod"
 
-const raw = import.meta.env.OPENCODE_CHANNEL
+const raw = import.meta.env.AWMATE_CHANNEL ?? import.meta.env.OPENCODE_CHANNEL
 
 export const CHANNEL: Channel = raw === "local" || raw === "dev" || raw === "beta" || raw === "prod" ? raw : "dev"
 

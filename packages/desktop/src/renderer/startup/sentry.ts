@@ -21,7 +21,7 @@ export async function initializeSentry(version: string) {
         (integration) =>
           integration.name !== "Breadcrumbs" &&
           !(
-            import.meta.env.OPENCODE_CHANNEL === "prod" &&
+            (import.meta.env.AWMATE_CHANNEL ?? import.meta.env.OPENCODE_CHANNEL) === "prod" &&
             (integration.name === "GlobalHandlers" || integration.name === "BrowserApiErrors")
           ),
       ),

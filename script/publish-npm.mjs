@@ -1,7 +1,9 @@
 // Publishes the AWMate CLI to npm: one platform package per release target plus the launcher
 // package `@awmate/cli`, whose postinstall copies the right platform binary into place.
-// Env: VERSION (release version), RELEASE_DIR (directory with the awmate-cli-* binaries),
-// NPM_TOKEN (automation token). Run from the repository root with node script/publish-npm.mjs.
+// Env: VERSION, RELEASE_DIR (awmate-cli-* binaries), NPM_TOKEN/NODE_AUTH_TOKEN, and optionally
+// ONLY (space-separated target filter, e.g. "darwin-arm64 darwin-x64 darwin-x64-baseline" for the
+// darwin-only job). Missing binaries are skipped with a warning; the launcher publishes only in
+// full mode, and an already-published version is treated as success.
 
 import childProcess from "node:child_process"
 import fs from "node:fs"
@@ -11,10 +13,9 @@ import url from "node:url"
 const root = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), "..")
 const version = process.env.VERSION
 const releaseDir = process.env.RELEASE_DIR
-// The workflow passes the npm token as NODE_AUTH_TOKEN (used by the .npmrc expansion); accept the
-// direct name too so the script also works when run manually with NPM_TOKEN.
 const token = process.env.NPM_TOKEN ?? process.env.NODE_AUTH_TOKEN
-if (!version || !releaseDir || !token) throw new Error("VERSION, RELEASE_DIR and NPM_TOKEN are required")
+const only = process.env.ONLY?.split(" ").filter(Boolean)
+if (!version || !releaseDir || !token) throw new Error("VERSION, RELEASE_DIR and NPM_TOKEN (or NODE_AUTH_TOKEN) are required")
 
 const targets = [
   { target: "darwin-arm64", os: "darwin", cpu: "arm64", exe: false },
@@ -26,7 +27,7 @@ const targets = [
   { target: "windows-arm64", os: "win32", cpu: "arm64", exe: true },
   { target: "windows-x64", os: "win32", cpu: "x64", exe: true },
   { target: "windows-x64-baseline", os: "win32", cpu: "x64", exe: true },
-]
+].filter((item) => !only || only.includes(item.target))
 
 const outDir = path.resolve("dist-npm")
 fs.rmSync(outDir, { recursive: true, force: true })
@@ -39,16 +40,20 @@ function npm(args, cwd = root) {
     env: { ...process.env },
     shell: process.platform === "win32",
   })
-  if (result.status !== 0) throw new Error(`npm ${args.join(" ")} failed with exit code ${result.status}`)
+  return result.status
 }
 
-// Publish expects an auth line in the user .npmrc; the workflow writes it from NODE_AUTH_TOKEN.
-
 const optionalDependencies = {}
+const published = []
+const skipped = []
 for (const { target, os, cpu, exe } of targets) {
   const asset = `awmate-cli-${target}${exe ? ".exe" : ""}`
   const source = path.join(releaseDir, asset)
-  if (!fs.existsSync(source)) throw new Error(`Release binary missing: ${source}`)
+  if (!fs.existsSync(source)) {
+    console.warn(`skipping ${target}: ${asset} is missing from the release directory`)
+    skipped.push(target)
+    continue
+  }
   const name = `@awmate/cli-${target}`
   optionalDependencies[name] = version
   const packageDir = path.join(outDir, target)
@@ -68,27 +73,50 @@ for (const { target, os, cpu, exe } of targets) {
     files: ["bin"],
   }
   fs.writeFileSync(path.join(packageDir, "package.json"), JSON.stringify(manifest, null, 2))
-  npm(["publish", "--access", "public", "--loglevel=error"], packageDir)
+  const status = npm(["publish", "--access", "public", "--loglevel=error"], packageDir)
+  // An already-published version (a re-run after a partial publish) is success, not a failure.
+  if (status !== 0) {
+    const view = childProcess.spawnSync("npm", ["view", `${name}@${version}`, "version"], {
+      encoding: "utf8",
+      shell: process.platform === "win32",
+    })
+    if (view.status === 0 && view.stdout.trim() === version) console.warn(`${name}@${version} already on npm; continuing`)
+    else throw new Error(`npm publish failed for ${name}`)
+  }
+  published.push(name)
   console.log(`published ${name}@${version}`)
 }
 
-const launcherDir = path.join(outDir, "cli")
-fs.mkdirSync(path.join(launcherDir, "bin"), { recursive: true })
-fs.copyFileSync(path.join(root, "script", "npm", "postinstall.mjs"), path.join(launcherDir, "postinstall.mjs"))
-const manifest = {
-  name: "@awmate/cli",
-  // Windows must be able to spawn the binary directly, so the bin target carries .exe on every
-  // platform - unix executes an ELF named .exe without caring about the extension.
-  bin: { awmate: "./bin/awmate.exe" },
-  scripts: { postinstall: "node ./postinstall.mjs" },
-  version,
-  description: "AWMate (Assistive Workmate) — the coding agent CLI",
-  license: "MIT",
-  repository: { type: "git", url: "git+https://github.com/devnxtgensec/awmate.git" },
-  os: ["darwin", "linux", "win32"],
-  cpu: ["arm64", "x64"],
-  optionalDependencies,
+// The launcher publishes only in full mode: its optionalDependencies must all exist on npm, so mac
+// users never hit a missing package while a darwin build is recovering.
+if (!only) {
+  const launcherDir = path.join(outDir, "cli")
+  fs.mkdirSync(path.join(launcherDir, "bin"), { recursive: true })
+  fs.copyFileSync(path.join(root, "script", "npm", "postinstall.mjs"), path.join(launcherDir, "postinstall.mjs"))
+  const manifest = {
+    name: "@awmate/cli",
+    // Windows must be able to spawn the binary directly, so the bin target carries .exe on every
+    // platform - unix executes an ELF named .exe without caring about the extension.
+    bin: { awmate: "./bin/awmate.exe" },
+    scripts: { postinstall: "node ./postinstall.mjs" },
+    version,
+    description: "AWMate (Assistive Workmate) — the coding agent CLI",
+    license: "MIT",
+    repository: { type: "git", url: "git+https://github.com/devnxtgensec/awmate.git" },
+    os: ["darwin", "linux", "win32"],
+    cpu: ["arm64", "x64"],
+    optionalDependencies,
+  }
+  fs.writeFileSync(path.join(launcherDir, "package.json"), JSON.stringify(manifest, null, 2))
+  const status = npm(["publish", "--access", "public", "--loglevel=error"], launcherDir)
+  if (status !== 0) {
+    const view = childProcess.spawnSync("npm", ["view", `@awmate/cli@${version}`, "version"], {
+      encoding: "utf8",
+      shell: process.platform === "win32",
+    })
+    if (!(view.status === 0 && view.stdout.trim() === version)) throw new Error(`npm publish failed for @awmate/cli`)
+  }
+  console.log(`published @awmate/cli@${version}`)
+} else if (skipped.length) {
+  console.warn(`platform packages skipped (binaries missing): ${skipped.join(", ")} - the retry will publish them`)
 }
-fs.writeFileSync(path.join(launcherDir, "package.json"), JSON.stringify(manifest, null, 2))
-npm(["publish", "--access", "public", "--loglevel=error"], launcherDir)
-console.log(`published @awmate/cli@${version}`)

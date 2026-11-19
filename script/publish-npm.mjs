@@ -11,7 +11,9 @@ import url from "node:url"
 const root = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), "..")
 const version = process.env.VERSION
 const releaseDir = process.env.RELEASE_DIR
-const token = process.env.NPM_TOKEN
+// The workflow passes the npm token as NODE_AUTH_TOKEN (used by the .npmrc expansion); accept the
+// direct name too so the script also works when run manually with NPM_TOKEN.
+const token = process.env.NPM_TOKEN ?? process.env.NODE_AUTH_TOKEN
 if (!version || !releaseDir || !token) throw new Error("VERSION, RELEASE_DIR and NPM_TOKEN are required")
 
 const targets = [

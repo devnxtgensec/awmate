@@ -587,7 +587,7 @@
       },
     },
     "packages/sdk": {
-      "name": "@opencode/sdk",
+      "name": "@awmate/sdk",
       "version": "2.2.7",
       "dependencies": {
         "@opencode/client": "workspace:*",
@@ -1224,6 +1224,8 @@
     "@astrojs/underscore-redirects": ["@astrojs/underscore-redirects@1.0.3", "", {}, "sha512-cxnGSw+sJigBLdX4TMSZKkzV6C3gMLJMucDk2W+n281Xhie68T2/9f1+1NMNDCZsc5i0FED7Qt5I10g2O9wtZg=="],
 
     "@astrojs/yaml2ts": ["@astrojs/yaml2ts@0.2.4", "", { "dependencies": { "yaml": "^2.8.3" } }, "sha512-8oddpOae35pJsXPQXhTkM0ypfKPskVsh2bCxRtbf7e+/Epw2nReakFYpLKjZMEr75CsoF203PMnCocpfz0s69A=="],
+
+    "@awmate/sdk": ["@awmate/sdk@workspace:packages/sdk"],
 
     "@aws-crypto/crc32": ["@aws-crypto/crc32@5.2.0", "", { "dependencies": { "@aws-crypto/util": "^5.2.0", "@aws-sdk/types": "^3.222.0", "tslib": "^2.6.2" } }, "sha512-nLbCWqQNgUiwwtFsen1AdzAtvuLRsQS8rYgMuxCrdKf9kOssamGLuPwyTY9wyYblNr9+1XM8v6zoDTPPSIeANg=="],
 
@@ -1990,8 +1992,6 @@
     "@opencode/schema": ["@opencode/schema@workspace:packages/schema"],
 
     "@opencode/script": ["@opencode/script@workspace:packages/script"],
-
-    "@opencode/sdk": ["@opencode/sdk@workspace:packages/sdk"],
 
     "@opencode/server": ["@opencode/server@workspace:packages/server"],
 

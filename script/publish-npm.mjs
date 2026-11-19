@@ -87,9 +87,20 @@ for (const { target, os, cpu, exe } of targets) {
   console.log(`published ${name}@${version}`)
 }
 
-// The launcher publishes only in full mode: its optionalDependencies must all exist on npm, so mac
-// users never hit a missing package while a darwin build is recovering.
+// The launcher publishes only in full mode, and only after every optional dependency is verifiably
+// on npm - a launcher referencing an unpublished platform package breaks installs on that platform
+// (the 2.2.50 release shipped while the darwin packages were missing, and every mac install failed).
 if (!only) {
+  const missing = []
+  for (const [name, depVersion] of Object.entries(optionalDependencies)) {
+    const view = childProcess.spawnSync("npm", ["view", `${name}@${depVersion}`, "version"], {
+      encoding: "utf8",
+      shell: process.platform === "win32",
+    })
+    if (!(view.status === 0 && view.stdout.trim() === depVersion)) missing.push(`${name}@${depVersion}`)
+  }
+  if (missing.length) throw new Error(`Platform packages not on npm yet: ${missing.join(", ")} - the launcher is withheld; the retry will publish it`)
+
   const launcherDir = path.join(outDir, "cli")
   fs.mkdirSync(path.join(launcherDir, "bin"), { recursive: true })
   fs.copyFileSync(path.join(root, "script", "npm", "postinstall.mjs"), path.join(launcherDir, "postinstall.mjs"))

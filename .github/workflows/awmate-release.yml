@@ -615,3 +615,23 @@ jobs:
           set -euo pipefail
           echo "//registry.npmjs.org/:_authToken=\${NODE_AUTH_TOKEN}" > ~/.npmrc
           node script/publish-npm.mjs
+
+  # Updates the Homebrew tap formula whenever a release ships darwin CLI binaries.
+  update-homebrew:
+    needs: [version, publish, build-cli-darwin]
+    if: always() && needs.publish.result == 'success' && needs.build-cli-darwin.result == 'success'
+    continue-on-error: true
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Check out AWMate main
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Update the Homebrew tap formula
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+        run: node script/update-homebrew.mjs

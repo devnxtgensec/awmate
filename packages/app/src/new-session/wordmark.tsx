@@ -2,6 +2,16 @@ import { Logo } from "@opencode/ui/logo"
 import { prefersReducedMotion } from "@opencode/ui/motion"
 import { type Accessor, createEffect, For, onCleanup, onMount, Show } from "solid-js"
 import { PinSound } from "./pin-sound"
+
+// The pixel wordmark letters, one glyph block each - the same art the website's watermark carries.
+const PIXEL_LETTERS = [
+  ["█▀█", "███", "▀ ▀"],
+  ["█   █", "█ █ █", "▀ ▀ ▀"],
+  ["█▀█▀█", "█ █ █", "▀ ▀ ▀"],
+  ["█▀█", "███", "▀ ▀"],
+  ["███", " █ ", " █ "],
+  ["███", "█▀▀", "███"],
+]
 import {
   LODGER_POP,
   selectWordmarkAnimating,
@@ -159,11 +169,17 @@ export function NewSessionWordmark(props: {
   play?: boolean
   sound?: () => boolean
 }) {
-  // Modified for AWMate: this screen has its own interactive OpenCode artwork.
+  // Modified for AWMate: this screen has its own interactive OpenCode artwork. AWMate builds keep the
+  // brand logo and add the pixel wordmark beneath it, matching the website's watermark.
   if (import.meta.env.AWMATE_BUILD === "true") {
     return (
-      <div ref={props.ref} data-component="new-session-wordmark" class="flex justify-center">
+      <div ref={props.ref} data-component="new-session-wordmark" class="flex flex-col items-center gap-5">
         <img src="./awmate-logo.png" alt="AWMate" class="h-32 max-w-full object-contain" />
+        <div class="flex items-end gap-2 text-v2-icon-icon-muted select-none" aria-hidden="true">
+          <For each={PIXEL_LETTERS}>
+            {(letter) => <pre class="m-0 font-mono leading-[0.95]">{letter.join("\n")}</pre>}
+          </For>
+        </div>
       </div>
     )
   }

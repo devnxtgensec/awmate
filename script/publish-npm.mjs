@@ -53,10 +53,10 @@ for (const { target, os, cpu, exe } of targets) {
   optionalDependencies[name] = version
   const packageDir = path.join(outDir, target)
   fs.mkdirSync(path.join(packageDir, "bin"), { recursive: true })
-  // The platform package carries the binary under the launcher's resolved name for its own OS.
-  fs.copyFileSync(source, path.join(packageDir, "bin", "awmate"))
-  if (exe) fs.copyFileSync(source, path.join(packageDir, "bin", "awmate.exe"))
-  fs.chmodSync(path.join(packageDir, "bin", "awmate"), 0o755)
+  // One binary per package: the Windows postinstall resolves bin/awmate.exe, unix resolves
+  // bin/awmate. Duplicating both would exceed npm's 500 MB unpacked limit on Windows targets.
+  fs.copyFileSync(source, path.join(packageDir, "bin", exe ? "awmate.exe" : "awmate"))
+  if (!exe) fs.chmodSync(path.join(packageDir, "bin", "awmate"), 0o755)
   const manifest = {
     name,
     version,

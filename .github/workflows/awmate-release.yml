@@ -576,3 +576,42 @@ jobs:
             exit 0
           fi
           gh release upload "$TAG" "${files[@]}" --clobber
+
+  # Publishes the CLI to npm: @awmate/cli plus one package per platform. Kept non-blocking while
+  # the npm org settles; the GitHub release itself never depends on npm.
+  publish-npm:
+    needs: [version, publish, build-cli, build-cli-darwin]
+    if: always() && needs.publish.result == 'success'
+    continue-on-error: true
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Check out AWMate main
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org/
+
+      - name: Download CLI binaries
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        continue-on-error: true
+        with:
+          pattern: awmate-cli-*
+          merge-multiple: true
+          path: release
+
+      - name: Publish to npm
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          RELEASE_DIR: release
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "//registry.npmjs.org/:_authToken=\${NODE_AUTH_TOKEN}" > ~/.npmrc
+          node script/publish-npm.mjs

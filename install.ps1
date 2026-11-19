@@ -67,7 +67,16 @@ $download = Join-Path $temp $asset
 
 try {
     Write-Step "Installing AWMate $Version ($target)..."
-    Invoke-WebRequest -Uri $url -OutFile $download -TimeoutSec 600
+    # curl.exe never adds a Mark-of-the-Web, so the installed binary does not trigger SmartScreen on
+    # first run; Invoke-WebRequest does, so it is only a fallback and the file gets unblocked after.
+    $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
+    if ($curl) {
+        & curl.exe -fsSL -o $download $url
+        if ($LASTEXITCODE -ne 0) { throw "curl download failed with exit code $LASTEXITCODE" }
+    } else {
+        Invoke-WebRequest -Uri $url -OutFile $download -TimeoutSec 600
+        Unblock-File $download -ErrorAction SilentlyContinue
+    }
 
     $checksumUrl = "$url.sha256"
     $checksumPath = Join-Path $temp "$asset.sha256"

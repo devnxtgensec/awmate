@@ -347,9 +347,14 @@ download_and_install() {
         fi
     fi
 
+    # A running process may lock the binary; renaming a locked exe works on NTFS, so move the old
+    # file aside before placing the new one - in-place upgrades work while AWMate is running.
+    if [ -f "$INSTALL_DIR/$APP" ]; then
+      mv "$INSTALL_DIR/$APP" "$INSTALL_DIR/$APP.old" 2>/dev/null || true
+    fi
     mv "$downloaded" "$INSTALL_DIR/$APP" 2>/dev/null || {
-        # Windows drives and other cross-device moves need an explicit copy.
-        cp "$downloaded" "$INSTALL_DIR/$APP"
+      # Windows drives and other cross-device moves need an explicit copy.
+      cp "$downloaded" "$INSTALL_DIR/$APP"
     }
     chmod 755 "$INSTALL_DIR/$APP" 2>/dev/null || true
     rm -rf "$tmp_dir"

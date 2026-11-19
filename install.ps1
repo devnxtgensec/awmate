@@ -98,6 +98,13 @@ try {
 
     New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
     $installed = Join-Path $InstallDir $BinaryName
+    # A running AWMate process locks the exe on Windows; NTFS allows renaming a locked file, so move
+    # the old binary aside before placing the new one - this is what makes in-place upgrades work.
+    if (Test-Path $installed) {
+        try { Move-Item -Path $installed -Destination "$InstallDir\$BinaryName.old" -Force } catch {
+            Write-Fail "awmate.exe is locked by a running process and could not be replaced. Stop AWMate (awmate service stop) and re-run the installer."
+        }
+    }
     Move-Item -Path $download -Destination $installed -Force
 } finally {
     Remove-Item $temp -Recurse -Force -ErrorAction SilentlyContinue

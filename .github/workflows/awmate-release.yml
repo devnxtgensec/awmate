@@ -390,9 +390,16 @@ jobs:
           OPENCODE_VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -euo pipefail
+          first=true
           for target in darwin-arm64 darwin-x64 darwin-x64-baseline; do
             echo "Building $target..."
-            OPENCODE_TARGET="$target" bun run script/build.ts --single --skip-install
+            # Each build needs its own outdir: the build's vite step empties packages/cli/dist, which
+            # would wipe the previous target's binary. Only the first run builds the web UI; the rest
+            # reuse the cached app archive.
+            skip=""
+            if [ "$first" = "false" ]; then skip="--skip-web-ui"; fi
+            OPENCODE_TARGET="$target" bun run script/build.ts --single --skip-install --outdir="dist-$target" $skip
+            first=false
           done
 
       - name: Collect the binaries
@@ -400,11 +407,11 @@ jobs:
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/awmate-cli"
           for target in darwin-arm64 darwin-x64 darwin-x64-baseline; do
-            dir="packages/cli/dist/cli-$target/bin"
+            dir="packages/cli/dist-$target/cli-$target/bin"
             if [ -f "$dir/opencode.exe" ]; then bin="$dir/opencode.exe"; else bin="$dir/opencode"; fi
             if [ ! -f "$bin" ]; then
               echo "CLI binary not found for $target" >&2
-              ls -R packages/cli/dist | head -40 >&2
+              ls -R "packages/cli/dist-$target" | head -40 >&2
               exit 1
             fi
             cp "$bin" "$RUNNER_TEMP/awmate-cli/awmate-cli-$target"

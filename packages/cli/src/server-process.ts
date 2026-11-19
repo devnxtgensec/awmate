@@ -18,6 +18,7 @@ import { RetainedImage } from "./services/retained-image"
 import { ServiceRegistration } from "./services/service-registration"
 import { RemoteTunnel } from "./services/remote-tunnel"
 import { WebUi } from "./services/web-ui"
+import { prepareGateway } from "./services/awmate-account"
 import { databasePath } from "./database-path"
 
 export type Mode = "default" | "service" | "stdio"
@@ -64,6 +65,13 @@ const processEffect = Effect.fnUntraced(function* (options: Options) {
     yield* Effect.try(() => process.chdir(global.home)).pipe(
       Effect.catch((cause) => Effect.logWarning("failed to change service directory to home", { cause })),
     )
+  // AWMate account: the server itself applies the gateway provider, so every start — spawned by the
+  // TUI, `service start`, or standalone — serves the account's models with the same credit metering.
+  // The desktop sidecar arrives with its own OPENCODE_CONFIG_CONTENT and is left untouched.
+  yield* Effect.tryPromise({
+    try: () => prepareGateway(),
+    catch: (cause) => new Error(`AWMate gateway config failed: ${String(cause)}`),
+  }).pipe(Effect.ignore)
   return yield* Effect.scoped(
     Effect.gen(function* () {
       const foreground = options.mode === "default"

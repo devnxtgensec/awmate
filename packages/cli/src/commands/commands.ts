@@ -87,6 +87,9 @@ const Root = Spec.make(cliName, {
         ),
       },
     }),
+    Spec.make("login", {
+      description: `Sign in to your AWMate account and enable the AWMate Gateway`,
+    }),
     Spec.make("uninstall", {
       description: `Uninstall ${cliTitle}, keeping session data, configuration, and state`,
       params: {

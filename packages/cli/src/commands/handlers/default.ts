@@ -15,12 +15,22 @@ import { Service } from "@opencode/client/effect/service"
 import { OpenCode } from "@opencode/client/promise"
 import { findSession } from "../../session-target"
 import { errorMessage } from "../../util/error"
+import { ensureAccount } from "../../services/awmate-account"
 
 export default Runtime.handler(Commands, (input) =>
   Effect.gen(function* () {
     const requestedDirectory = Option.getOrUndefined(input.directory)
     const requestedServer = Option.getOrUndefined(input.server)
     if (requestedDirectory !== undefined) process.chdir(requestedDirectory)
+    // AWMate account: first launch asks for the sign-in, then every session injects the gateway
+    // provider through OPENCODE_CONFIG_CONTENT, which the background server inherits. Only runs on
+    // an interactive terminal; the desktop sidecar arrives with its own config and skips this.
+    if (requestedServer === undefined && (process.stdout.isTTY || process.stdin.isTTY))
+      yield* Effect.tryPromise({
+        try: () =>
+          ensureAccount((text) => process.stderr.write(`${text}\n`)),
+        catch: (cause) => new Error(errorMessage(cause)),
+      }).pipe(Effect.ignore)
     const preflight = UpdatePreflight.make()
     yield* Effect.addFinalizer(() => Effect.promise(() => preflight.close()))
     const serviceStarts = yield* Queue.unbounded<{

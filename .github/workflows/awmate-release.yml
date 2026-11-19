@@ -45,9 +45,11 @@ jobs:
         working-directory: packages/cli
         shell: pwsh
         env:
+          AWMATE_CLI_NAME: awmate
+          AWMATE_CLI_TITLE: AWMate
           OPENCODE_CHANNEL: dev
           OPENCODE_VERSION: ${{ needs.version.outputs.version }}
-        run: bun run script/build.ts --single --skip-install
+        run: bun run script/build.ts --single --baseline --skip-install
 
       - name: Build AWMate desktop
         working-directory: packages/desktop
@@ -142,10 +144,17 @@ jobs:
       - name: Build the AWMate runtime
         working-directory: packages/cli
         env:
+          AWMATE_CLI_NAME: awmate
+          AWMATE_CLI_TITLE: AWMate
           OPENCODE_CHANNEL: dev
-          OPENCODE_TARGET: darwin-${{ matrix.arch }}
+          OPENCODE_TARGET: ${{ matrix.arch == 'x64' && 'darwin-x64-baseline' || 'darwin-arm64' }}
           OPENCODE_VERSION: ${{ needs.version.outputs.version }}
-        run: bun run script/build.ts --single --skip-install
+        run: |
+          if [ "${{ matrix.arch }}" = "x64" ]; then
+            bun run script/build.ts --single --baseline --skip-install
+          else
+            bun run script/build.ts --single --skip-install
+          fi
 
       - name: Build AWMate desktop
         working-directory: packages/desktop
@@ -224,10 +233,12 @@ jobs:
       - name: Build the AWMate runtime
         working-directory: packages/cli
         env:
+          AWMATE_CLI_NAME: awmate
+          AWMATE_CLI_TITLE: AWMate
           OPENCODE_CHANNEL: dev
-          OPENCODE_TARGET: linux-x64
+          OPENCODE_TARGET: linux-x64-baseline
           OPENCODE_VERSION: ${{ needs.version.outputs.version }}
-        run: bun run script/build.ts --single --skip-install
+        run: bun run script/build.ts --single --baseline --skip-install
 
       - name: Build AWMate desktop
         working-directory: packages/desktop

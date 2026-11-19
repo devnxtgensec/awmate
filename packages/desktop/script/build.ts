@@ -25,6 +25,9 @@ const built = await exists(path.join(cli, getCurrentCli().package.replace("@open
 if (channel === "prod" && !built)
   throw new Error(`Production desktop builds bundle the CLI from ${cli}; build it first`)
 
+if (process.env.AWMATE_BUILD === "1" && !built)
+  throw new Error(`AWMate desktop builds require a branded CLI artifact at ${cli}; build it first`)
+
 if (built) await copyBuiltCliToResources(cli)
 
 if (!built) await downloadCliToResources(channel === "beta" ? "beta" : undefined)

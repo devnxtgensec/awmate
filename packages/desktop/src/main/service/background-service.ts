@@ -110,6 +110,7 @@ const ensure = Effect.fn("BackgroundService.ensure")(function* (mode: Background
 
 const prepare = Effect.fn("BackgroundService.prepare")(function* (mode: BackgroundServiceMachine.ConnectMode) {
   yield* Effect.logInfo("starting v2 background service")
+  const fs = yield* FileSystem.FileSystem
   const path = yield* Path.Path
   const desktopCli = yield* DesktopCli.Service
 
@@ -121,15 +122,32 @@ const prepare = Effect.fn("BackgroundService.prepare")(function* (mode: Backgrou
 
   if (isolated) process.env.XDG_STATE_HOME = app.getPath("userData")
   const client = yield* Effect.promise(() => import("@opencode/client/service"))
+  const stateRoot = process.env.XDG_STATE_HOME ?? path.join(app.getPath("home"), ".local", "state")
 
   const file =
     process.env.OPENCODE_DESKTOP_SERVER_CHANNEL === "local"
-      ? path.join(
-          process.env.XDG_STATE_HOME ?? path.join(app.getPath("home"), ".local", "state"),
-          "awmate",
-          "service-local.json",
-        )
-      : undefined
+      ? path.join(stateRoot, "awmate", "service-local.json")
+      : import.meta.env.AWMATE_BUILD === true
+        ? path.join(stateRoot, "awmate", "service.json")
+        : undefined
+
+  if (file && import.meta.env.AWMATE_BUILD === true && process.env.OPENCODE_DESKTOP_SERVER_CHANNEL !== "local") {
+    // Older AWMate installers bundled the OpenCode-named CLI, which registered under the legacy state root.
+    const legacyFile = path.join(stateRoot, "opencode", "service.json")
+    const legacy = yield* Effect.promise(() => client.Service.discover({ file: legacyFile }))
+    const current = yield* Effect.promise(() => client.Service.discover({ file }))
+
+    if (legacy && !current) {
+      const registration = yield* fs.readFileString(legacyFile).pipe(Effect.option)
+
+      if (Option.isSome(registration)) {
+        yield* fs.makeDirectory(path.dirname(file), { recursive: true }).pipe(Effect.orDie)
+        const temporary = `${file}.${process.pid}.tmp`
+        yield* fs.writeFileString(temporary, registration.value, { mode: 0o600 }).pipe(Effect.orDie)
+        yield* fs.rename(temporary, file).pipe(Effect.orDie)
+      }
+    }
+  }
 
   return { cli, client, file, isolated, version }
 })

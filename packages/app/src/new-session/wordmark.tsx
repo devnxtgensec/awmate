@@ -2,61 +2,6 @@ import { Logo } from "@opencode/ui/logo"
 import { prefersReducedMotion } from "@opencode/ui/motion"
 import { type Accessor, createEffect, For, onCleanup, onMount, Show } from "solid-js"
 import { PinSound } from "./pin-sound"
-
-// The pixel AWMATE name as filled-cell grids (4 rows tall). Drawn as SVG rects so it renders crisply
-// without depending on block-glyph font support.
-const PIXEL_GRID = [
-  [[0, 1, 1, 0], [1, 1, 1, 1], [1, 0, 0, 1], [1, 0, 0, 1]], // A
-  [[1, 0, 0, 0, 1], [1, 0, 0, 0, 1], [1, 0, 1, 0, 1], [1, 1, 1, 1, 1]], // W
-  [[1, 1, 1, 1, 1], [1, 0, 1, 0, 1], [1, 0, 1, 0, 1], [1, 0, 1, 0, 1]], // M
-  [[0, 1, 1, 0], [1, 1, 1, 1], [1, 0, 0, 1], [1, 0, 0, 1]], // A
-  [[1, 1, 1], [0, 1, 0], [0, 1, 0], [0, 1, 0]], // T
-  [[1, 1, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]], // E
-]
-
-const CELL = 6
-const GAP = 6
-
-// Greedy maximal-rect merge: adjacent filled cells become one rect, so the letters render as solid
-// strokes with no seams between cells.
-function letterRects(letter: number[][], offsetX: number) {
-  const used = letter.map((row) => row.map(() => false))
-  const rects: Array<{ x: number; y: number; w: number; h: number }> = []
-  for (let r = 0; r < letter.length; r++) {
-    for (let c = 0; c < letter[r].length; c++) {
-      if (!letter[r][c] || used[r][c]) continue
-      let width = 1
-      while (c + width < letter[r].length && letter[r][c + width] && !used[r][c + width]) width++
-      let height = 1
-      grow: while (r + height < letter.length) {
-        for (let k = 0; k < width; k++) {
-          if (!letter[r + height][c + k] || used[r + height][c + k]) break grow
-        }
-        height++
-      }
-      for (let rr = r; rr < r + height; rr++) for (let cc = c; cc < c + width; cc++) used[rr][cc] = true
-      rects.push({ x: offsetX + c * CELL, y: r * CELL, w: width * CELL, h: height * CELL })
-    }
-  }
-  return rects
-}
-
-function PixelName() {
-  const rects: Array<{ x: number; y: number; w: number; h: number }> = []
-  let offset = 0
-  for (const letter of PIXEL_GRID) {
-    rects.push(...letterRects(letter, offset))
-    offset += letter[0].length * CELL + GAP
-  }
-  const width = offset - GAP
-  return (
-    <svg viewBox={`0 0 ${width} ${4 * CELL}`} width={width * 2} height={4 * CELL * 2} class="text-v2-icon-icon-muted" aria-hidden="true">
-      <For each={rects}>
-        {(rect) => <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} rx={0.8} fill="currentColor" />}
-      </For>
-    </svg>
-  )
-}
 import {
   LODGER_POP,
   selectWordmarkAnimating,
@@ -214,13 +159,15 @@ export function NewSessionWordmark(props: {
   play?: boolean
   sound?: () => boolean
 }) {
-  // Modified for AWMate: this screen has its own interactive OpenCode artwork. AWMate builds show a
-  // lockup - the brand logo beside the pixel AWMATE name, drawn as crisp SVG rects.
+  // Modified for AWMate: this screen shows the pixel AWMATE watermark art the website carries -
+  // muted AWM half, bright ATE half - in place of the interactive OpenCode artwork.
   if (import.meta.env.AWMATE_BUILD === "true") {
     return (
-      <div ref={props.ref} data-component="new-session-wordmark" class="flex items-center justify-center gap-5">
-        <img src="./awmate-logo.png" alt="AWMate" class="h-20 w-auto object-contain" />
-        <PixelName />
+      <div ref={props.ref} data-component="new-session-wordmark" class="flex justify-center">
+        <pre class="select-none font-mono text-[clamp(18px,2.6vw,42px)] leading-[1.05]" aria-hidden="true">
+          <span class="text-v2-text-icon-muted">{"                \n█▀▀█ █ █ █ █▀█▀█\n█▀▀█ █ █ █ █ █ █\n▀  ▀ ▀▀▀▀▀ ▀ ▀ ▀"}</span>
+          <span class="text-white">{"     \n█▀▀█ ▀▀█▀▀ █▀▀▀\n█▀▀█   █   █▀▀▀\n▀  ▀   ▀   ▀▀▀▀"}</span>
+        </pre>
       </div>
     )
   }

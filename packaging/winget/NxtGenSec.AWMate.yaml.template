@@ -9,6 +9,8 @@
 #
 # PackageIdentifier: NxtGenSec.AWMate
 # PackageVersion: 2.2.40
+# DefaultLocale: en-US
+# ManifestType: singleton
 # Installers:
 #   - Architecture: x64
 #     InstallerType: portable          # the CLI binary; the desktop .exe uses "exe" + nested installer metadata

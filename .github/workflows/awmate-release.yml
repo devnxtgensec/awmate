@@ -677,6 +677,37 @@ jobs:
           echo "//registry.npmjs.org/:_authToken=\${NODE_AUTH_TOKEN}" > ~/.npmrc
           node script/publish-npm.mjs
 
+  # The launcher (@awmate/cli) must reference every platform package, so it publishes only after
+  # both platform publish jobs succeed. It carries no binaries - just the postinstall and the
+  # optionalDependencies map - so a plain linux runner works no matter where each binary was built.
+  publish-launcher:
+    needs: [version, publish-npm, publish-npm-darwin]
+    if: always() && needs.publish-npm.result == 'success' && needs.publish-npm-darwin.result == 'success'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Check out AWMate main
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org/
+
+      - name: Publish the launcher to npm
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          LAUNCHER_ONLY: "1"
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "//registry.npmjs.org/:_authToken=\${NODE_AUTH_TOKEN}" > ~/.npmrc
+          node script/publish-npm.mjs
+
   # Updates the Homebrew tap formula whenever a release ships darwin CLI binaries. Runs after
   # attach-cli-darwin so the checksums are attached to the release before this reads them.
   update-homebrew:

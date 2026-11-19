@@ -2,8 +2,9 @@
 // package `@awmate/cli`, whose postinstall copies the right platform binary into place.
 // Env: VERSION, RELEASE_DIR (awmate-cli-* binaries), NPM_TOKEN/NODE_AUTH_TOKEN, and optionally
 // ONLY (space-separated target filter, e.g. "darwin-arm64 darwin-x64 darwin-x64-baseline" for the
-// darwin-only job). Missing binaries are skipped with a warning; the launcher publishes only in
-// full mode, and an already-published version is treated as success.
+// darwin-only job) or LAUNCHER_ONLY=1 to publish just the launcher. Missing binaries are skipped
+// with a warning; the launcher publishes in full mode or LAUNCHER_ONLY mode, and an
+// already-published version is treated as success.
 
 import childProcess from "node:child_process"
 import fs from "node:fs"
@@ -15,9 +16,10 @@ const version = process.env.VERSION
 const releaseDir = process.env.RELEASE_DIR
 const token = process.env.NPM_TOKEN ?? process.env.NODE_AUTH_TOKEN
 const only = process.env.ONLY?.split(" ").filter(Boolean)
-if (!version || !releaseDir || !token) throw new Error("VERSION, RELEASE_DIR and NPM_TOKEN (or NODE_AUTH_TOKEN) are required")
+const launcherOnly = process.env.LAUNCHER_ONLY === "1"
+if (!version || !token || (!launcherOnly && !releaseDir)) throw new Error("VERSION, NPM_TOKEN (or NODE_AUTH_TOKEN) and - unless LAUNCHER_ONLY=1 - RELEASE_DIR are required")
 
-const targets = [
+const allTargets = [
   { target: "darwin-arm64", os: "darwin", cpu: "arm64", exe: false },
   { target: "darwin-x64", os: "darwin", cpu: "x64", exe: false },
   { target: "darwin-x64-baseline", os: "darwin", cpu: "x64", exe: false },
@@ -27,7 +29,8 @@ const targets = [
   { target: "windows-arm64", os: "win32", cpu: "arm64", exe: true },
   { target: "windows-x64", os: "win32", cpu: "x64", exe: true },
   { target: "windows-x64-baseline", os: "win32", cpu: "x64", exe: true },
-].filter((item) => !only || only.includes(item.target))
+]
+const targets = launcherOnly ? [] : allTargets.filter((item) => !only || only.includes(item.target))
 
 const outDir = path.resolve("dist-npm")
 fs.rmSync(outDir, { recursive: true, force: true })
@@ -87,10 +90,12 @@ for (const { target, os, cpu, exe } of targets) {
   console.log(`published ${name}@${version}`)
 }
 
-// The launcher publishes only in full mode. The gate is in-memory - every platform package had to
-// publish successfully in this run. Do NOT verify with `npm view` here: the registry lags minutes
-// behind fresh publishes, which false-negatived every package and wrongly withheld the launcher.
-if (!only && skipped.length === 0) {
+// The launcher references every platform package at this version, so it publishes either in full
+// mode (all binaries present and published in this run) or in LAUNCHER_ONLY mode (the platform
+// packages were published by the publish-npm and publish-npm-darwin jobs, whose success gates this
+// run). Do NOT verify with `npm view` here: the registry lags minutes behind fresh publishes,
+// which false-negatived every package and wrongly withheld the launcher.
+function publishLauncher(deps) {
   const launcherDir = path.join(outDir, "cli")
   fs.mkdirSync(path.join(launcherDir, "bin"), { recursive: true })
   fs.copyFileSync(path.join(root, "script", "npm", "postinstall.mjs"), path.join(launcherDir, "postinstall.mjs"))
@@ -106,7 +111,7 @@ if (!only && skipped.length === 0) {
     repository: { type: "git", url: "git+https://github.com/devnxtgensec/awmate.git" },
     os: ["darwin", "linux", "win32"],
     cpu: ["arm64", "x64"],
-    optionalDependencies,
+    optionalDependencies: deps,
   }
   fs.writeFileSync(path.join(launcherDir, "package.json"), JSON.stringify(manifest, null, 2))
   const status = npm(["publish", "--access", "public", "--loglevel=error"], launcherDir)
@@ -118,6 +123,12 @@ if (!only && skipped.length === 0) {
     if (!(view.status === 0 && view.stdout.trim() === version)) throw new Error(`npm publish failed for @awmate/cli`)
   }
   console.log(`published @awmate/cli@${version}`)
+}
+
+if (launcherOnly) {
+  publishLauncher(Object.fromEntries(allTargets.map(({ target }) => [`@awmate/cli-${target}`, version])))
+} else if (!only && skipped.length === 0) {
+  publishLauncher(optionalDependencies)
 } else if (skipped.length) {
-  console.warn(`platform packages skipped (binaries missing): ${skipped.join(", ")} - the launcher is withheld this run; the retry publishes it with the darwin packages`)
+  console.warn(`platform packages skipped (binaries missing): ${skipped.join(", ")} - the launcher is withheld this run; the publish-launcher job publishes it`)
 }

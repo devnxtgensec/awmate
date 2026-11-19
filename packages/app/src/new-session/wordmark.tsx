@@ -159,14 +159,30 @@ export function NewSessionWordmark(props: {
   play?: boolean
   sound?: () => boolean
 }) {
-  // Modified for AWMate: this screen shows the pixel AWMATE watermark art the website carries -
-  // muted AWM half, bright ATE half - in place of the interactive OpenCode artwork.
+  // Modified for AWMate: this screen shows the brand logo with the pixel AWMATE wordmark above the
+  // composer - a single horizontal line, deliberately very light so it never competes with the chat.
   if (import.meta.env.AWMATE_BUILD === "true") {
+    const lines = [
+      "                ",
+      "█▀▀█ █ █ █ █▀█▀█",
+      "█▀▀█ █ █ █ █ █ █",
+      "▀  ▀ ▀▀▀▀▀ ▀ ▀ ▀",
+    ]
+    const right = [
+      "             ",
+      "█▀▀█ ▀▀█▀▀ █▀▀▀",
+      "█▀▀█   █   █▀▀▀",
+      "▀  ▀   ▀   ▀▀▀▀",
+    ]
+    const joined = lines.map((line, index) => `${line} ${right[index] ?? ""}`)
     return (
-      <div ref={props.ref} data-component="new-session-wordmark" class="flex justify-center">
-        <pre class="select-none font-mono text-[clamp(18px,2.6vw,42px)] leading-[1.05]" aria-hidden="true">
-          <span class="text-v2-text-icon-muted">{"                \n█▀▀█ █ █ █ █▀█▀█\n█▀▀█ █ █ █ █ █ █\n▀  ▀ ▀▀▀▀▀ ▀ ▀ ▀"}</span>
-          <span class="text-white">{"     \n█▀▀█ ▀▀█▀▀ █▀▀▀\n█▀▀█   █   █▀▀▀\n▀  ▀   ▀   ▀▀▀▀"}</span>
+      <div ref={props.ref} data-component="new-session-wordmark" class="flex flex-col items-center gap-3">
+        <img src="./awmate-logo.png" alt="AWMate" class="h-24 max-w-full object-contain" />
+        <pre
+          class="select-none font-mono text-[clamp(11px,1.15vw,17px)] leading-[1.08] text-white opacity-[0.07]"
+          aria-hidden="true"
+        >
+          {joined.join("\n")}
         </pre>
       </div>
     )

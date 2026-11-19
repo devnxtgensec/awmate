@@ -1,0 +1,25 @@
+# AUR package for AWMate. Maintained at aur.archlinux.org/packages/awmate-bin (requires an AUR
+# account; publish with the AUR SSH key: git clone ssh://aur@aur.archlinux.org/awmate-bin.git).
+# Update pkgver and the sha256sums from the release's .sha256 sidecars for each release, then:
+#   makepkg --printsrcinfo > .SRCINFO && git add -A && git commit -m "2.2.41" && git push
+
+pkgname=awmate-bin
+pkgver=2.2.40
+pkgrel=1
+pkgdesc="AWMate (Assistive Workmate) - the coding agent CLI"
+arch=('x86_64')
+url="https://awmate.nxtgensec.org"
+license=('MIT')
+depends=('glibc')
+provides=('awmate')
+conflicts=('awmate')
+source_x86_64=("awmate-cli-linux-x64-${pkgver}::https://github.com/devnxtgensec/awmate/releases/download/v${pkgver}/awmate-cli-linux-x64")
+source_aarch64=("awmate-cli-linux-arm64-${pkgver}::https://github.com/devnxtgensec/awmate/releases/download/v${pkgver}/awmate-cli-linux-arm64")
+sha256sums_x86_64=('SKIP')  # replace with the release's awmate-cli-linux-x64.sha256
+sha256sums_aarch64=('SKIP')  # replace with the release's awmate-cli-linux-arm64.sha256
+
+package() {
+  install -Dm755 "${srcdir}/awmate-cli-linux-x64-${pkgver}" "${pkgdir}/usr/bin/awmate"
+  install -Dm644 /dev/null "${pkgdir}/usr/share/doc/awmate/README"
+  echo 'Run awmate once to sign in and start your daily free usage.' > "${pkgdir}/usr/share/doc/awmate/README"
+}

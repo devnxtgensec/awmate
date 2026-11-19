@@ -1,0 +1,40 @@
+# WinGet manifest for AWMate. Submitted as a PR to microsoft/winget-pkgs under
+# manifests/n/NxtGenSec/AWMate/<version>/. Update the version and the installer SHA256 (from the
+# release's awmate-cli-windows-x64.exe.sha256 sidecar or the desktop installer) for each release.
+#
+# Files required in the PR (YamlCreate from winget-create generates these from this template):
+#   NxtGenSec.AWMate.yaml               (version singleton)
+#   NxtGenSec.AWMate.installer.yaml
+#   NxtGenSec.AWMate.locale.en-US.yaml
+#
+# PackageIdentifier: NxtGenSec.AWMate
+# PackageVersion: 2.2.40
+# Installers:
+#   - Architecture: x64
+#     InstallerType: portable          # the CLI binary; the desktop .exe uses "exe" + nested installer metadata
+#     InstallerUrl: https://github.com/devnxtgensec/awmate/releases/download/v2.2.40/awmate-cli-windows-x64.exe
+#     InstallerSha256: <from awmate-cli-windows-x64.exe.sha256>
+#     Commands:
+#       - awmate
+#   - Architecture: arm64
+#     InstallerType: portable
+#     InstallerUrl: https://github.com/devnxtgensec/awmate/releases/download/v2.2.40/awmate-cli-windows-arm64.exe
+#     InstallerSha256: <from awmate-cli-windows-arm64.exe.sha256>
+#     Commands:
+#       - awmate
+# PackageLocale: en-US
+# Publisher: NxtGenSec
+# PublisherUrl: https://awmate.nxtgensec.org
+# PublisherSupportUrl: https://awmate.nxtgensec.org/contact
+# PackageName: AWMate
+# PackageUrl: https://awmate.nxtgensec.org/download
+# License: MIT
+# ShortDescription: AWMate (Assistive Workmate) - the coding agent CLI
+# Description: AWMate is an assistive workmate for writing, running and reviewing code, with the AWMate Gateway and a daily free usage allowance after a one-time Google sign-in.
+# Moniker: awmate
+# Tags:
+#   - ai
+#   - cli
+#   - coding-agent
+# ManifestType: singleton
+# ManifestVersion: 1.6.0

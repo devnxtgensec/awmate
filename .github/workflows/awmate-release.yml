@@ -202,6 +202,10 @@ jobs:
           # ditto keeps the bundle's symlinks, permissions and extended attributes; zip -r does not.
           ditto -c -k --sequesterRsrc --keepParent "$app" "$release/awmate-desktop-mac-$ARCH.zip"
           shasum -a 256 "$release/awmate-desktop-mac-$ARCH.zip" | awk '{print $1}' > "$release/awmate-desktop-mac-$ARCH.zip.sha256"
+          # tar.gz extracted with `tar` in Terminal carries no quarantine, so unsigned builds open
+          # without the Gatekeeper "damaged" prompt that Archive Utility's zip extraction triggers.
+          tar -czf "$release/awmate-desktop-mac-$ARCH.tar.gz" -C "$(dirname "$app")" "$(basename "$app")"
+          shasum -a 256 "$release/awmate-desktop-mac-$ARCH.tar.gz" | awk '{print $1}' > "$release/awmate-desktop-mac-$ARCH.tar.gz.sha256"
           if [ -f packages/desktop/dist/latest-mac.yml ]; then cp packages/desktop/dist/latest-mac.yml "$release/latest-mac.yml"; fi
 
       - name: Upload release files

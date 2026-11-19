@@ -87,20 +87,10 @@ for (const { target, os, cpu, exe } of targets) {
   console.log(`published ${name}@${version}`)
 }
 
-// The launcher publishes only in full mode, and only after every optional dependency is verifiably
-// on npm - a launcher referencing an unpublished platform package breaks installs on that platform
-// (the 2.2.50 release shipped while the darwin packages were missing, and every mac install failed).
-if (!only) {
-  const missing = []
-  for (const [name, depVersion] of Object.entries(optionalDependencies)) {
-    const view = childProcess.spawnSync("npm", ["view", `${name}@${depVersion}`, "version"], {
-      encoding: "utf8",
-      shell: process.platform === "win32",
-    })
-    if (!(view.status === 0 && view.stdout.trim() === depVersion)) missing.push(`${name}@${depVersion}`)
-  }
-  if (missing.length) throw new Error(`Platform packages not on npm yet: ${missing.join(", ")} - the launcher is withheld; the retry will publish it`)
-
+// The launcher publishes only in full mode. The gate is in-memory - every platform package had to
+// publish successfully in this run. Do NOT verify with `npm view` here: the registry lags minutes
+// behind fresh publishes, which false-negatived every package and wrongly withheld the launcher.
+if (!only && skipped.length === 0) {
   const launcherDir = path.join(outDir, "cli")
   fs.mkdirSync(path.join(launcherDir, "bin"), { recursive: true })
   fs.copyFileSync(path.join(root, "script", "npm", "postinstall.mjs"), path.join(launcherDir, "postinstall.mjs"))
@@ -129,5 +119,5 @@ if (!only) {
   }
   console.log(`published @awmate/cli@${version}`)
 } else if (skipped.length) {
-  console.warn(`platform packages skipped (binaries missing): ${skipped.join(", ")} - the retry will publish them`)
+  console.warn(`platform packages skipped (binaries missing): ${skipped.join(", ")} - the launcher is withheld this run; the retry publishes it with the darwin packages`)
 }

@@ -77,7 +77,9 @@ fs.mkdirSync(path.join(launcherDir, "bin"), { recursive: true })
 fs.copyFileSync(path.join(root, "script", "npm", "postinstall.mjs"), path.join(launcherDir, "postinstall.mjs"))
 const manifest = {
   name: "@awmate/cli",
-  bin: { awmate: "./bin/awmate" },
+  // Windows must be able to spawn the binary directly, so the bin target carries .exe on every
+  // platform - unix executes an ELF named .exe without caring about the extension.
+  bin: { awmate: "./bin/awmate.exe" },
   scripts: { postinstall: "node ./postinstall.mjs" },
   version,
   description: "AWMate (Assistive Workmate) — the coding agent CLI",

@@ -99,9 +99,28 @@ function backupOnce(target: string, source: string) {
   fs.rmSync(dir, { recursive: true, force: true })
   fs.mkdirSync(dir, { recursive: true })
   for (const suffix of SUFFIXES) {
-    if (fs.existsSync(source + suffix)) fs.copyFileSync(source + suffix, path.join(dir, path.basename(source) + suffix))
+    if (fs.existsSync(source + suffix)) copyWithRetry(source + suffix, path.join(dir, path.basename(source) + suffix))
   }
   return dir
+}
+
+// Windows keeps SQLite files locked while another server drains, so a copy can fail with
+// EBUSY/EPERM during an in-place upgrade. A few short retries cover the shutdown window.
+function isLocked(error: unknown) {
+  const code = (error as NodeJS.ErrnoException | null)?.code
+  return code === "EBUSY" || code === "EPERM"
+}
+
+function copyWithRetry(source: string, target: string) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      fs.copyFileSync(source, target)
+      return
+    } catch (error) {
+      if (attempt >= 4 || !isLocked(error)) throw error
+      Bun.sleepSync(150 * (attempt + 1))
+    }
+  }
 }
 
 function copyAtomically(source: string, target: string) {
@@ -109,7 +128,7 @@ function copyAtomically(source: string, target: string) {
   try {
     for (const suffix of SUFFIXES) {
       fs.rmSync(temp + suffix, { force: true })
-      if (fs.existsSync(source + suffix)) fs.copyFileSync(source + suffix, temp + suffix)
+      if (fs.existsSync(source + suffix)) copyWithRetry(source + suffix, temp + suffix)
     }
     if (!isHealthy(temp)) {
       for (const suffix of SUFFIXES) fs.rmSync(temp + suffix, { force: true })

@@ -9,6 +9,7 @@ import { BackgroundServiceMachine } from "./background-service-machine"
 import { cleanStages } from "./cli-stages"
 import { keptStages, serviceVersion, shouldRetryEnsure } from "./cli-version"
 import { DesktopCli } from "./desktop-cli"
+import { isolatedServicePort } from "./service-port"
 import { SidecarCredentials } from "./sidecar-credentials"
 import { takeSidecarProbe } from "./sidecar-probe"
 
@@ -78,7 +79,7 @@ const ensure = Effect.fn("BackgroundService.ensure")(function* (mode: Background
         "serve",
         "--service",
         ...(setup.isolated
-          ? ["--hostname", "0.0.0.0", "--port", process.env.AWMATE_DESKTOP_SERVICE_PORT ?? String(0x0c0c)]
+          ? ["--hostname", "0.0.0.0", "--port", isolatedServicePort(process.env)]
           : []),
       ],
       onStart: (reason, previousVersion) =>

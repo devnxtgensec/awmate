@@ -11,7 +11,7 @@ type LoginAttempt = { controller: AbortController; code?: string }
 
 let activeLogin: LoginAttempt | undefined
 
-export type Account = { email: string; name: string; desktopAccessStatus: string; awsGateway?: boolean; gatewayEnabled: boolean; opencodeEnabled: boolean; models: string[] }
+export type Account = { email: string; name: string; desktopAccessStatus: string; awsGateway?: boolean; gatewayEnabled: boolean; opencodeEnabled: boolean; models: string[]; modelContexts?: Record<string, number> }
 
 export function clearGateway() {
   stopRelayProxy()
@@ -117,8 +117,12 @@ export async function prepareGateway() {
 
   if (result.account.desktopAccessStatus !== "approved") return previous
 
-  // Modified for AWMate: desktop context budgets for AWMate Gateway models.
+  // Modified for AWMate: desktop context budgets for AWMate Gateway models. Admin-set context
+  // windows arrive in the session payload; the built-ins remain only as a fallback.
   const contextLimit = (id: string) => {
+    const served = result.account.modelContexts?.[id]
+    if (Number.isSafeInteger(served) && (served as number) > 0) return served as number
+
     if (id === "gemma4") return 262_144
 
     if (id === "glm5.3-flash" || id === "deepseekv4.1-flash-1017") return 1_048_576

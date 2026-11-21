@@ -98,8 +98,12 @@ export async function logout() {
 // The gateway provider config, injected through OPENCODE_CONFIG_CONTENT like the desktop does. The
 // OpenCode gateway stays available only to accounts an administrator enabled it for; everything a
 // user connects explicitly through /connect keeps working.
-function applyGateway(account: AwmateAccount, models: string[], opencodeEnabled: boolean, gatewayEnabled: boolean) {
-  const contextLimit = (id: string) => (id === "gemma4" ? 262_144 : id.startsWith("glm") || id.startsWith("deepseek") ? 1_048_576 : undefined)
+function applyGateway(account: AwmateAccount, models: string[], opencodeEnabled: boolean, gatewayEnabled: boolean, modelContexts?: Record<string, number>) {
+  const contextLimit = (id: string) => {
+    const served = modelContexts?.[id]
+    if (Number.isSafeInteger(served) && (served as number) > 0) return served as number
+    return id === "gemma4" ? 262_144 : id.startsWith("glm") || id.startsWith("deepseek") ? 1_048_576 : undefined
+  }
   process.env.AWMATE_GATEWAY_SESSION = account.token
   process.env.OPENCODE_CONFIG_CONTENT = JSON.stringify({
     model: `awmate/${models[0] ?? fallbackModels[0]}`,
@@ -137,10 +141,10 @@ export async function prepareGateway(): Promise<PrepareResult> {
   }).catch(() => undefined)
   if (!response?.ok) return "unavailable"
   // SAFETY: a successful session response is the platform's account payload.
-  const result = (await response.json()) as { account?: { desktopAccessStatus?: string; models?: string[]; gatewayEnabled?: boolean; opencodeEnabled?: boolean } }
+  const result = (await response.json()) as { account?: { desktopAccessStatus?: string; models?: string[]; modelContexts?: Record<string, number>; gatewayEnabled?: boolean; opencodeEnabled?: boolean } }
   if (result.account?.desktopAccessStatus !== "approved") return "unavailable"
   const models = result.account.models?.length ? result.account.models : fallbackModels
-  applyGateway(account, models, result.account.opencodeEnabled === true, result.account.gatewayEnabled !== false)
+  applyGateway(account, models, result.account.opencodeEnabled === true, result.account.gatewayEnabled !== false, result.account.modelContexts)
   return "applied"
 }
 

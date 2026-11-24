@@ -130,6 +130,26 @@ test("shared packaging defaults", async () => {
   ])
 })
 
+test.each(channels)("publisher name for $channel", ({ channel }) => {
+  // Non-AWMate channels keep the package author as the publisher.
+  expect(load(channel).win?.publisherName).toBeUndefined()
+})
+
+test("the AWMate Windows installer publishes under the NxtGenSec publisher", () => {
+  const previous = process.env.OPENCODE_CHANNEL
+  process.env.OPENCODE_CHANNEL = "dev"
+  process.env.AWMATE_BUILD = "1"
+  try {
+    const config = getConfig()
+    // Apps & features shows the publisher from the config, not the OpenCode package author.
+    expect(config.win?.publisherName).toBe("NxtGenSec")
+  } finally {
+    delete process.env.AWMATE_BUILD
+    if (previous !== undefined) process.env.OPENCODE_CHANNEL = previous
+    else delete process.env.OPENCODE_CHANNEL
+  }
+})
+
 test("trims external dependencies without excluding runtime files", () => {
   const fileStats = statSync(import.meta.filename)
   const dirStats = statSync(import.meta.dirname)

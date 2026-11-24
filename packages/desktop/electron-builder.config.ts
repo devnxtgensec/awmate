@@ -183,6 +183,8 @@ const getBase = (appId: string): Configuration => {
       icon: `resources/icons/icon.ico`,
       target: ["nsis"],
       verifyUpdateCodeSignature: false,
+      // Apps & features shows the package author ("OpenCode") as the publisher unless overridden.
+      ...(process.env.AWMATE_BUILD === "1" ? { publisherName: "NxtGenSec" } : {}),
     },
     nsis: {
       include: path.join(packageDir, "resources", "windows", "installer.nsh"),

@@ -146,8 +146,9 @@ test("the AWMate Windows installer publishes under the NxtGenSec publisher", () 
   try {
     const config = getConfig()
     // electron-builder 26 derives the Add/Remove Programs publisher and the exe's
-    // CompanyName from the package author; win.publisherName no longer exists.
-    expect(config.extraMetadata?.author).toBe("NxtGenSec")
+    // CompanyName from `author.name`; win.publisherName no longer exists and a plain
+    // string author would read as undefined, so the override uses the object form.
+    expect(config.extraMetadata?.author).toEqual({ name: "NxtGenSec" })
   } finally {
     delete process.env.AWMATE_BUILD
     if (previous !== undefined) process.env.OPENCODE_CHANNEL = previous

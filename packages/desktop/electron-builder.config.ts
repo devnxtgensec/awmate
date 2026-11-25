@@ -234,11 +234,11 @@ export function getConfig() {
         appId,
         // Modified for AWMate: use a dedicated package identity for installer and updater storage.
         // The author override is the electron-builder 26 way to set the Windows publisher:
-        // NSIS writes Add/Remove Programs' Publisher from appInfo.companyName (the package
-        // author), which also fills the exe's CompanyName version string.
+        // NSIS writes Add/Remove Programs' Publisher from appInfo.companyName, which reads
+        // `author.name` — so the override must use the object form, not a plain string.
         extraMetadata: {
           ...base.extraMetadata,
-          ...(awmate && { name: "awmate-desktop", author: "NxtGenSec" }),
+          ...(awmate && { name: "awmate-desktop", author: { name: "NxtGenSec" } }),
         },
         productName: process.env.AWMATE_BUILD === "1" ? "AWMate" : "OpenCode Dev",
         protocols:

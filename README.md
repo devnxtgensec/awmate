@@ -1,114 +1,82 @@
 <p align="center">
-  <a href="https://opencode.ai">
-    <picture>
-      <source srcset=".github/assets/logo-ornate-dark.svg" media="(prefers-color-scheme: dark)">
-      <source srcset=".github/assets/logo-ornate-light.svg" media="(prefers-color-scheme: light)">
-      <img src=".github/assets/logo-ornate-light.svg" alt="OpenCode logo">
-    </picture>
-  </a>
+  <picture>
+    <source srcset=".github/assets/awmate-logo-dark.svg" media="(prefers-color-scheme: dark)">
+    <source srcset=".github/assets/awmate-logo.svg" media="(prefers-color-scheme: light)">
+    <img src=".github/assets/awmate-logo.svg" alt="AWMate" width="420">
+  </picture>
 </p>
-<p align="center">The open source AI coding agent.</p>
+<p align="center"><strong>The AI coding agent by NxtGenSec.</strong></p>
 <p align="center">
-  <a href="https://opencode.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
-  <a href="https://www.npmjs.com/package/@opencode/cli"><img alt="npm" src="https://img.shields.io/npm/v/@opencode/cli?style=flat-square" /></a>
-  <a href="https://github.com/anomalyco/opencode/actions/workflows/release.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/opencode/release.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://www.npmjs.com/package/@awmate/cli"><img alt="npm" src="https://img.shields.io/npm/v/@awmate/cli?style=flat-square&label=%40awmate%2Fcli" /></a>
+  <a href="https://github.com/devnxtgensec/awmate/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/devnxtgensec/awmate?style=flat-square" /></a>
+  <a href="https://github.com/devnxtgensec/awmate/actions/workflows/awmate-release.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/devnxtgensec/awmate/awmate-release.yml?style=flat-square&branch=main" /></a>
+  <a href="https://awmate.nxtgensec.org"><img alt="Website" src="https://img.shields.io/website?style=flat-square&url=https%3A%2F%2Fawmate.nxtgensec.org" /></a>
 </p>
-
-<p align="center">
-  <a href="README.md">English</a> |
-  <a href="README.zh.md">简体中文</a> |
-  <a href="README.zht.md">繁體中文</a> |
-  <a href="README.ko.md">한국어</a> |
-  <a href="README.de.md">Deutsch</a> |
-  <a href="README.es.md">Español</a> |
-  <a href="README.fr.md">Français</a> |
-  <a href="README.it.md">Italiano</a> |
-  <a href="README.da.md">Dansk</a> |
-  <a href="README.ja.md">日本語</a> |
-  <a href="README.pl.md">Polski</a> |
-  <a href="README.ru.md">Русский</a> |
-  <a href="README.bs.md">Bosanski</a> |
-  <a href="README.ar.md">العربية</a> |
-  <a href="README.no.md">Norsk</a> |
-  <a href="README.br.md">Português (Brasil)</a> |
-  <a href="README.th.md">ไทย</a> |
-  <a href="README.tr.md">Türkçe</a> |
-  <a href="README.uk.md">Українська</a> |
-  <a href="README.bn.md">বাংলা</a> |
-  <a href="README.gr.md">Ελληνικά</a> |
-  <a href="README.vi.md">Tiếng Việt</a>
-</p>
-
-[![OpenCode Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://opencode.ai)
 
 ---
 
-### Installation
+AWMate (Assistive Workmate) is an AI coding agent for your terminal and desktop: it
+understands your codebase, edits files, runs commands, and handles multi-step work —
+with plans in rupees, a free daily allowance, and a gateway that routes to the best
+models. Sign in with `awmate login` and start working.
+
+## Installation
 
 ```bash
-# YOLO
-curl -fsSL https://opencode.ai/v2/install | bash
+# macOS and Linux
+curl -fsSL https://awmate.nxtgensec.org/install | bash
 
-# Package managers
-npm i -g @opencode/cli@latest      # or bun/pnpm/yarn
-brew install anomalyco/tap/opencode-v2 # macOS and Linux (recommended, always up to date)
-brew install opencode              # macOS and Linux (official brew formula, updated less)
-sudo pacman -S opencode            # Arch Linux (Stable)
-paru -S opencode-beta              # Arch Linux (Latest from AUR)
-mise use -g opencode               # Any OS
-nix run github:anomalyco/opencode  # Nix
+# Windows (PowerShell)
+irm https://awmate.nxtgensec.org/install.ps1 | iex
+
+# npm (all platforms)
+npm i -g @awmate/cli@latest
+
+# Homebrew (macOS and Linux)
+brew install devnxtgensec/tap/awmate
 ```
 
-> [!TIP]
-> Remove versions older than 0.1.x before installing.
+The installers verify every download (SHA-256) and support in-place upgrades while
+AWMate is running — reopen the app to finish an update.
 
-### Desktop App (BETA)
+### Desktop app
 
-OpenCode is also available as a desktop application. Download it from [opencode.ai/download](https://opencode.ai/download).
+AWMate is also available as a desktop application for [download](https://awmate.nxtgensec.org/download).
 
-| Platform              | Download                           |
-| --------------------- | ---------------------------------- |
-| macOS (Apple Silicon) | `opencode-desktop-mac-arm64.dmg`   |
-| macOS (Intel)         | `opencode-desktop-mac-x64.dmg`     |
-| Windows               | `opencode-desktop-win-x64.exe`     |
-| Linux                 | `.deb`, `.rpm`, or `.AppImage`     |
+| Platform              | Status                                  | Download                              |
+| --------------------- | --------------------------------------- | ------------------------------------- |
+| Windows 10 / 11       | ✅ Available                            | `awmate-desktop-win-x64.exe`          |
+| macOS (Apple Silicon) | Beta                                    | `awmate-desktop-mac-arm64.zip`        |
+| macOS (Intel)         | Beta                                    | `awmate-desktop-mac-x64.zip`          |
+| Linux                 | Beta                                    | `.deb`, `.rpm`, or `.AppImage`        |
 
-```bash
-# macOS (Homebrew)
-brew install --cask opencode-desktop
-```
+## Agents
 
-#### Installation Directory
+AWMate includes two built-in agents you can switch between with the `Tab` key.
 
-The install script installs OpenCode to `$HOME/.opencode/bin`.
-
-### Agents
-
-OpenCode includes two built-in agents you can switch between with the `Tab` key.
-
-- **build** - Default, full-access agent for development work
-- **plan** - Read-only agent for analysis and code exploration
+- **build** — default, full-access agent for development work
+- **plan** — read-only agent for analysis and code exploration
   - Denies file edits by default
   - Asks permission before running bash commands
   - Ideal for exploring unfamiliar codebases or planning changes
 
-Also included is a **general** subagent for complex searches and multistep tasks.
-This is used internally and can be invoked using `@general` in messages.
+A **general** subagent for complex searches and multi-step tasks is also included and
+can be invoked with `@general` in messages.
 
-Learn more about [agents](https://opencode.ai/docs/agents).
+## Documentation
 
-### Documentation
+Configuration, providers, agents, plugins, skills, MCP, the SDK and the HTTP API are
+documented at [**awmate.nxtgensec.org/docs**](https://awmate.nxtgensec.org/docs).
 
-For more info on how to configure OpenCode, [**head over to our docs**](https://opencode.ai/docs).
+## Pricing
 
-### Contributing
+Start free — every account gets ₹9 of usage daily, no plan needed. When you need more,
+pick a plan at [awmate.nxtgensec.org](https://awmate.nxtgensec.org): one credit equals
+₹1 of usage.
 
-If you're interested in contributing to OpenCode, please read our [contributing docs](./CONTRIBUTING.md) before submitting a pull request.
+## Attribution
 
-### Building on OpenCode
-
-If you are working on a project that's related to OpenCode and is using "opencode" as part of its name, for example "opencode-dashboard" or "opencode-mobile", please add a note to your README to clarify that it is not built by the OpenCode team and is not affiliated with us in any way.
-
----
-
-**Join our community** [Discord](https://discord.gg/opencode) | [X.com](https://x.com/opencode)
+AWMate is built on [OpenCode](https://github.com/anomalyco/opencode) by Anomaly
+Innovations, licensed under the MIT license. This repository is an independent product
+maintained by [NxtGenSec](https://github.com/devnxtgensec) and is not built by, or
+affiliated with, the OpenCode team.

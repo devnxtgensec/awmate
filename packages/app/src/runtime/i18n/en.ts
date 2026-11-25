@@ -21,6 +21,7 @@ export const dict = {
   "awmate.auth.unavailable": "Could not check your AWMate account. Check your connection and try again.",
   // "Modified for AWMate": account menu plan and credit balance.
   "awmate.account.planCredits": "{{remaining}} of {{allowance}} credits left",
+"awmate.account.planPercent": "{{percent}}% left",
   "awmate.account.usedToday": "{{used}} used today",
   "awmate.account.dailyCeiling": "Up to {{ceiling}} credits per day",
   "awmate.account.planExpires": "Renews {{date}}",

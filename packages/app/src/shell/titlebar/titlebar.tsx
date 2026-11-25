@@ -873,9 +873,11 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                                     />
                                                   </div>
                                                   <span class="text-11-regular text-v2-text-text-muted">
-                                                    {language.t("awmate.account.planCredits", {
-                                                      remaining: usage.remaining,
-                                                      allowance: usage.allowance,
+                                                    {language.t("awmate.account.planPercent", {
+                                                      percent: Math.min(
+                                                        100,
+                                                        Math.max(0, Math.round((usage.remaining / Math.max(1, usage.allowance)) * 100)),
+                                                      ),
                                                     })}
                                                   </span>
                                                   <span class="text-11-regular text-v2-text-text-muted">

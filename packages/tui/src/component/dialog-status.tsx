@@ -51,8 +51,9 @@ export function DialogStatus() {
                   <Show when={info().planUsage}>
                     {(usage) => (
                       <text fg={theme.text.base} wrapMode="word">
-                        Plan <b>{info().account?.plan?.name}</b> · {usage().remaining} of {usage().allowance} credits
-                        left today
+                        Plan <b>{info().account?.plan?.name}</b> ·{" "}
+                        {Math.min(100, Math.max(0, Math.round((usage().remaining / Math.max(1, usage().allowance)) * 100)))}
+                        % left
                       </text>
                     )}
                   </Show>

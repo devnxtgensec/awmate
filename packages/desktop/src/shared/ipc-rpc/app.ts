@@ -41,8 +41,6 @@ export const AppAWMateAuthStatus = Rpc.make("AppAWMateAuthStatus", {
 // Modified for AWMate: preserve expected sign-in failures as readable IPC errors instead of defects.
 export const AppAWMateAuthSignIn = Rpc.make("AppAWMateAuthSignIn", { success: AWMateAccount, error: Schema.String })
 
-export const AppAWMateClaimCredit = Rpc.make("AppAWMateClaimCredit", { success: Schema.String })
-
 export const AppAWMateAuthSignOut = Rpc.make("AppAWMateAuthSignOut")
 
 // The renderer listens for DeepLinksOpened before it reports ready, and acknowledges each delivery once handled.
@@ -110,7 +108,6 @@ export const AppRpcs = RpcGroup.make(
   AppReconnectService,
   AppAWMateAuthStatus,
   AppAWMateAuthSignIn,
-  AppAWMateClaimCredit,
   AppAWMateAuthSignOut,
   AppReadyDeepLinks,
   AppAcknowledgeDeepLinks,

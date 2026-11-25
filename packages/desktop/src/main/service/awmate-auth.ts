@@ -50,23 +50,6 @@ async function token() {
   }
 }
 
-export async function claimDailyCredit() {
-  const current = await token()
-
-  if (!current) return "Sign in to AWMate to claim credit."
-
-  const response = await fetch(`${platformURL}/api/daily-bonus`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${current}` },
-    signal: AbortSignal.timeout(10000),
-  })
-
-  // SAFETY: The platform's daily-bonus endpoint returns a JSON object with optional message/error strings.
-  const result = await response.json() as { message?: string; error?: string }
-
-  return response.ok ? "Extra $1 claimed. Send your message again." : result.error ?? "Claim failed. Try again."
-}
-
 export async function status() {
   const current = await token()
 

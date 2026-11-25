@@ -52,7 +52,6 @@ export type FatalRendererErrorLog = {
 type PlatformBase = {
   awmateAuthStatus?(): Promise<AWMateAccount | null>
   awmateAuthSignIn?(): Promise<AWMateAccount>
-  awmateClaimCredit?(): Promise<string>
   awmateAuthSignOut?(): Promise<void>
   requestMicrophone?(): Promise<boolean>
   setVoiceCallActive?(active: boolean): Promise<void>

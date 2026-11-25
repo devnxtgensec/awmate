@@ -19,7 +19,6 @@ export type ElectronAPI = {
   reconnectService(signal?: AbortSignal): Promise<ServerReadyData>
   awmateAuthStatus(): Promise<AWMateAccount | null>
   awmateAuthSignIn(): Promise<AWMateAccount>
-  awmateClaimCredit(): Promise<string>
   awmateAuthSignOut(): Promise<void>
   onSidecarChanged(cb: (data: ServerReadyData) => void): () => void
   readyDeepLinks(): void

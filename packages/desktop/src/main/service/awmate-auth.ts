@@ -135,8 +135,12 @@ export async function prepareGateway() {
   // bind, use Cloudflare directly rather than losing the gateway.
   const cloudflareBaseURL = `${platformURL}/api/gateway/v1`
 
-  const baseURL = result.account.awsGateway
-    ? await startRelayProxy().catch(() => cloudflareBaseURL)
+  // Every gateway-enabled account goes through the local relay so Cloudflare 503s
+  // (CPU-limit kills on long streams) fail over to the AWS gateway transparently.
+  // Opted-in accounts prefer AWS outright; everyone else prefers Cloudflare and
+  // only shifts to AWS while Cloudflare is failing.
+  const baseURL = result.account.gatewayEnabled
+    ? await startRelayProxy(result.account.awsGateway ? "aws" : "cloudflare").catch(() => cloudflareBaseURL)
     : cloudflareBaseURL
 
   process.env.AWMATE_GATEWAY_SESSION = current

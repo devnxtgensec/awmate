@@ -1,9 +1,9 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http"
 
-// The desktop points the AWMate provider at this local proxy when the account is
-// opted in to the AWS relay. The proxy tries AWS first and falls back to the
-// Cloudflare gateway when AWS is unreachable or returns a server error before a
-// response body is committed.
+// The desktop points the AWMate provider at this local proxy. The proxy tries the
+// preferred gateway first (Cloudflare by default, AWS for opted-in accounts) and
+// fails over to the other gateway when the preferred one is unreachable or returns
+// a server error before a response body is committed.
 // The provider baseURL is `http://127.0.0.1:<port>/v1`, so requests arrive with
 // a `/v1/...` path that is appended to these prefixes.
 const AWS_BASE = "https://gateway.nxtgensec.org/awmate"
@@ -24,11 +24,14 @@ let baseURL: string | undefined
 
 let upstreams: Upstreams = { aws: AWS_BASE, cloudflare: CLOUDFLARE_BASE }
 
-let failures = 0
+let preferred: Upstream = "cloudflare"
 
-let unhealthyUntil = 0
+const failures: Record<Upstream, number> = { aws: 0, cloudflare: 0 }
 
-export async function startRelayProxy() {
+const unhealthyUntil: Record<Upstream, number> = { aws: 0, cloudflare: 0 }
+
+export async function startRelayProxy(prefer: Upstream = "cloudflare") {
+  preferred = prefer
   if (server) return baseURL!
   // Local and staging runs can point the proxy at a different relay or gateway.
   upstreams = {
@@ -70,8 +73,11 @@ export function stopRelayProxy() {
   server = undefined
   baseURL = undefined
   upstreams = { aws: AWS_BASE, cloudflare: CLOUDFLARE_BASE }
-  failures = 0
-  unhealthyUntil = 0
+  preferred = "cloudflare"
+  failures.aws = 0
+  failures.cloudflare = 0
+  unhealthyUntil.aws = 0
+  unhealthyUntil.cloudflare = 0
   current?.closeAllConnections()
   current?.close()
 }
@@ -104,15 +110,17 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
 
       // A server error before the stream starts is safe to retry on the other
       // upstream. A client error is the account's answer and must pass through.
+      // When both upstreams fail, the first error (from the preferred gateway)
+      // is kept as the truthful answer.
       if (result.status >= 500) {
         lastError = new Error(`${upstream} returned ${result.status}`)
-        lastResponse = result
+        lastResponse ??= result
 
-        if (upstream === "aws") recordFailure()
+        recordFailure(upstream)
         continue
       }
 
-      if (upstream === "aws") recordSuccess()
+      recordSuccess(upstream)
       await pipe(result, response)
 
       return
@@ -129,7 +137,7 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
 
       lastError = error instanceof Error ? error : new Error(String(error))
 
-      if (upstream === "aws") recordFailure()
+      recordFailure(upstream)
     }
   }
 
@@ -150,27 +158,29 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
 }
 
 function order(): Upstream[] {
-  if (Date.now() < unhealthyUntil) return ["cloudflare", "aws"]
+  const other: Upstream = preferred === "aws" ? "cloudflare" : "aws"
 
-  return ["aws", "cloudflare"]
+  if (Date.now() < unhealthyUntil[preferred]) return [other, preferred]
+
+  return [preferred, other]
 }
 
 function base(upstream: Upstream) {
   return upstreams[upstream]
 }
 
-function recordFailure() {
-  failures++
+function recordFailure(upstream: Upstream) {
+  failures[upstream]++
 
-  if (failures < FAILURE_THRESHOLD) return
-  unhealthyUntil = Date.now() + COOLDOWN_MS
-  failures = 0
-  console.warn("[awmate-relay] AWS relay marked unhealthy; using Cloudflare for a minute")
+  if (failures[upstream] < FAILURE_THRESHOLD) return
+  unhealthyUntil[upstream] = Date.now() + COOLDOWN_MS
+  failures[upstream] = 0
+  console.warn(`[awmate-relay] ${upstream} gateway marked unhealthy; preferring the other gateway for a minute`)
 }
 
-function recordSuccess() {
-  failures = 0
-  unhealthyUntil = 0
+function recordSuccess(upstream: Upstream) {
+  failures[upstream] = 0
+  unhealthyUntil[upstream] = 0
 }
 
 async function readBody(request: IncomingMessage) {

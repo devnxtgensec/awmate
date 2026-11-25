@@ -20,11 +20,11 @@ function upstream(handler: (request: IncomingMessage, response: ServerResponse) 
   })
 }
 
-function start(aws: string, cloudflare: string) {
+function start(aws: string, cloudflare: string, prefer: "aws" | "cloudflare" = "cloudflare") {
   process.env.AWMATE_RELAY_AWS_BASE = aws
   process.env.AWMATE_RELAY_CLOUDFLARE_BASE = cloudflare
 
-  return startRelayProxy()
+  return startRelayProxy(prefer)
 }
 
 afterEach(() => {
@@ -73,11 +73,32 @@ describe("awmate relay proxy", () => {
       response.end(JSON.stringify({ object: "list", data: [] }))
     })
 
-    const baseURL = await start(aws, cloudflare)
+    const baseURL = await start(aws, cloudflare, "aws")
     const response = await fetch(`${baseURL}/models`)
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({ object: "list", data: [] })
     expect(cloudflarePath).toBe("/v1/models")
+  })
+
+  test("prefers Cloudflare by default and shifts to AWS when Cloudflare 503s", async () => {
+    let awsHits = 0
+
+    const aws = await upstream((_request, response) => {
+      awsHits++
+      response.writeHead(200, { "Content-Type": "application/json" })
+      response.end(JSON.stringify({ object: "list", data: [] }))
+    })
+
+    const cloudflare = await upstream((_request, response) => {
+      response.writeHead(503, { "Content-Type": "application/json" })
+      response.end(JSON.stringify({ error: "cpu limit exceeded" }))
+    })
+
+    const baseURL = await start(aws, cloudflare)
+    const response = await fetch(`${baseURL}/models`)
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ object: "list", data: [] })
+    expect(awsHits).toBe(1)
   })
 
   test("passes a client error through without falling back", async () => {
@@ -94,7 +115,7 @@ describe("awmate relay proxy", () => {
       response.end("{}")
     })
 
-    const baseURL = await start(aws, cloudflare)
+    const baseURL = await start(aws, cloudflare, "aws")
     const response = await fetch(`${baseURL}/chat/completions`, { method: "POST", body: "{}" })
     expect(response.status).toBe(400)
     expect(cloudflareHits).toBe(0)
@@ -106,7 +127,7 @@ describe("awmate relay proxy", () => {
       response.end("ok")
     })
 
-    const baseURL = await start("http://127.0.0.1:1", cloudflare)
+    const baseURL = await start("http://127.0.0.1:1", cloudflare, "aws")
     const response = await fetch(`${baseURL}/models`)
     expect(response.status).toBe(200)
     expect(await response.text()).toBe("ok")
@@ -244,7 +265,7 @@ describe("awmate relay proxy", () => {
       response.end("data: [DONE]\n\n")
     })
 
-    const baseURL = await start(aws, cloudflare)
+    const baseURL = await start(aws, cloudflare, "aws")
     const response = await fetch(`${baseURL}/chat/completions`, { method: "POST", body: "{}" })
     expect(response.status).toBe(200)
     await response.text().catch(() => undefined)
@@ -265,7 +286,7 @@ describe("awmate relay proxy", () => {
       response.end("ok")
     })
 
-    const baseURL = await start(aws, cloudflare)
+    const baseURL = await start(aws, cloudflare, "aws")
     await fetch(`${baseURL}/models`)
     await fetch(`${baseURL}/models`)
     expect(awsHits).toBe(2)

@@ -183,8 +183,6 @@ const getBase = (appId: string): Configuration => {
       icon: `resources/icons/icon.ico`,
       target: ["nsis"],
       verifyUpdateCodeSignature: false,
-      // Apps & features shows the package author ("OpenCode") as the publisher unless overridden.
-      ...(process.env.AWMATE_BUILD === "1" ? { publisherName: "NxtGenSec" } : {}),
     },
     nsis: {
       include: path.join(packageDir, "resources", "windows", "installer.nsh"),
@@ -235,7 +233,13 @@ export function getConfig() {
         ...base,
         appId,
         // Modified for AWMate: use a dedicated package identity for installer and updater storage.
-        extraMetadata: { ...base.extraMetadata, ...(awmate && { name: "awmate-desktop" }) },
+        // The author override is the electron-builder 26 way to set the Windows publisher:
+        // NSIS writes Add/Remove Programs' Publisher from appInfo.companyName (the package
+        // author), which also fills the exe's CompanyName version string.
+        extraMetadata: {
+          ...base.extraMetadata,
+          ...(awmate && { name: "awmate-desktop", author: "NxtGenSec" }),
+        },
         productName: process.env.AWMATE_BUILD === "1" ? "AWMate" : "OpenCode Dev",
         protocols:
           process.env.AWMATE_BUILD === "1" ? { name: "AWMate", schemes: ["awmate"] } : base.protocols,

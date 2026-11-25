@@ -11,6 +11,10 @@ import { CLI_BINARIES, nodePtyPackage } from "./script/utils"
 
 // Use electron-builder's matcher so the tests also cover its glob and directory traversal semantics.
 const { FileMatcher } = createRequire(import.meta.resolve("electron-builder"))("app-builder-lib/out/fileMatcher")
+// electron-builder's own schema validator, so config drift fails here instead of in CI.
+const { validateConfiguration } = createRequire(import.meta.resolve("electron-builder"))(
+  "app-builder-lib/out/util/config/config",
+)
 
 const channels = [
   { channel: "dev", appId: "ai.opencode.desktop.dev", feed: "dev" },
@@ -132,7 +136,7 @@ test("shared packaging defaults", async () => {
 
 test.each(channels)("publisher name for $channel", ({ channel }) => {
   // Non-AWMate channels keep the package author as the publisher.
-  expect(load(channel).win?.publisherName).toBeUndefined()
+  expect(load(channel).extraMetadata?.author).toBeUndefined()
 })
 
 test("the AWMate Windows installer publishes under the NxtGenSec publisher", () => {
@@ -141,8 +145,28 @@ test("the AWMate Windows installer publishes under the NxtGenSec publisher", () 
   process.env.AWMATE_BUILD = "1"
   try {
     const config = getConfig()
-    // Apps & features shows the publisher from the config, not the OpenCode package author.
-    expect(config.win?.publisherName).toBe("NxtGenSec")
+    // electron-builder 26 derives the Add/Remove Programs publisher and the exe's
+    // CompanyName from the package author; win.publisherName no longer exists.
+    expect(config.extraMetadata?.author).toBe("NxtGenSec")
+  } finally {
+    delete process.env.AWMATE_BUILD
+    if (previous !== undefined) process.env.OPENCODE_CHANNEL = previous
+    else delete process.env.OPENCODE_CHANNEL
+  }
+})
+
+test.each(channels)("packaged config for $channel passes electron-builder's schema", async ({ channel }) => {
+  // CI fails the whole matrix when the config drifts from the schema (a broken key
+  // rejects the entire object, e.g. configuration.win). Validate every channel here.
+  await expect(validateConfiguration(load(channel))).resolves.toBeUndefined()
+})
+
+test("the AWMate packaged config passes electron-builder's schema", async () => {
+  const previous = process.env.OPENCODE_CHANNEL
+  process.env.OPENCODE_CHANNEL = "dev"
+  process.env.AWMATE_BUILD = "1"
+  try {
+    await expect(validateConfiguration(getConfig())).resolves.toBeUndefined()
   } finally {
     delete process.env.AWMATE_BUILD
     if (previous !== undefined) process.env.OPENCODE_CHANNEL = previous

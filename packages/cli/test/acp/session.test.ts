@@ -24,20 +24,20 @@ describe("acp session lifecycle over the wire", () => {
         sessionCapabilities: { additionalDirectories: {}, close: {}, delete: {}, fork: {}, list: {}, resume: {} },
         _meta: { "opencode/child-session-updates": true },
       },
-      agentInfo: { name: "OpenCode" },
+      agentInfo: { name: "AWMate" },
       _meta: { steering: { supported: true } },
     })
     expect(plain.authMethods).toEqual([
-      { id: "opencode-login", name: "Login with opencode", description: "Run `opencode auth login` in the terminal" },
+      { id: "opencode-login", name: "Login with AWMate", description: "Run `awmate auth login` in the terminal" },
     ])
     expect(terminal.authMethods?.[0]?._meta).toEqual({
-      "terminal-auth": { command: "opencode", args: ["auth", "login"], label: "OpenCode Login" },
+      "terminal-auth": { command: "awmate", args: ["auth", "login"], label: "AWMate Login" },
     })
     expect(standard.authMethods).toEqual([
       {
         id: "opencode-login",
-        name: "Login with opencode",
-        description: "Run `opencode auth login` in the terminal",
+        name: "Login with AWMate",
+        description: "Run `awmate auth login` in the terminal",
         type: "terminal",
         args: ["--login"],
       },

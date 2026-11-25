@@ -232,17 +232,17 @@ function locale(value: string) {
 const normalizeScript = (script?: string) => (script === "Aran" ? "Arab" : script)
 
 export const DESKTOP_NATIVE_ENGLISH = {
-  "desktop.microphoneUsage": "OpenCode uses your microphone for voice calls.",
+  "desktop.microphoneUsage": "AWMate uses your microphone for voice calls.",
   "desktop.documentsFolderUsage":
-    "OpenCode uses files in your Documents folder for projects you open and commands you run there.",
-  "desktop.desktopFolderUsage": "OpenCode uses files on your Desktop for projects you open and commands you run there.",
+    "AWMate uses files in your Documents folder for projects you open and commands you run there.",
+  "desktop.desktopFolderUsage": "AWMate uses files on your Desktop for projects you open and commands you run there.",
   "desktop.downloadsFolderUsage":
-    "OpenCode uses files in your Downloads folder for projects you open and commands you run there.",
+    "AWMate uses files in your Downloads folder for projects you open and commands you run there.",
   "desktop.networkVolumesUsage":
-    "OpenCode uses files on network volumes for projects you open and commands you run there.",
+    "AWMate uses files on network volumes for projects you open and commands you run there.",
   "desktop.removableVolumesUsage":
-    "OpenCode uses files on removable volumes for projects you open and commands you run there.",
-  "desktop.menu.app": "OpenCode",
+    "AWMate uses files on removable volumes for projects you open and commands you run there.",
+  "desktop.menu.app": "AWMate",
   "desktop.menu.file": "File",
   "desktop.menu.edit": "Edit",
   "desktop.menu.view": "View",
@@ -286,10 +286,10 @@ export const DESKTOP_NATIVE_ENGLISH = {
   "desktop.menu.supportForum": "Support Forum",
   "desktop.menu.shareFeedback": "Share Feedback",
   "desktop.menu.reportBug": "Report a Bug",
-  "desktop.menu.ariaLabel": "OpenCode menu",
+  "desktop.menu.ariaLabel": "AWMate menu",
 
   "desktop.cli.installed.title": "CLI Installed",
-  "desktop.cli.installed.message": "CLI installed to {{path}}\n\nRestart your terminal to use the 'opencode' command.",
+  "desktop.cli.installed.message": "CLI installed to {{path}}\n\nRestart your terminal to use the 'awmate' command.",
   "desktop.cli.failed.title": "Installation Failed",
   "desktop.cli.failed.message": "Failed to install CLI: {{error}}",
 
@@ -297,9 +297,9 @@ export const DESKTOP_NATIVE_ENGLISH = {
   "desktop.recovery.action.exportLogs": "Export Logs",
   "desktop.recovery.action.keepWaiting": "Keep Waiting",
   "desktop.recovery.action.quit": "Quit",
-  "desktop.recovery.loadFailed": "OpenCode failed to load",
-  "desktop.recovery.terminated": "OpenCode window terminated unexpectedly",
-  "desktop.recovery.unresponsive": "OpenCode is not responding",
+  "desktop.recovery.loadFailed": "AWMate failed to load",
+  "desktop.recovery.terminated": "AWMate window terminated unexpectedly",
+  "desktop.recovery.unresponsive": "AWMate is not responding",
   "desktop.recovery.unresponsive.detail": "You can relaunch the app, open the logs, or keep waiting.",
   "desktop.recovery.loadFailed.detail": "Window: {{window}}\nURL: {{url}}\nError: {{code}} {{description}}",
   "desktop.recovery.terminated.detail": "Window: {{window}}\nReason: {{reason}}\nCode: {{code}}",

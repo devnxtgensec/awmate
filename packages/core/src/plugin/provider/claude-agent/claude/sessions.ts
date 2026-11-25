@@ -238,7 +238,7 @@ export function registry() {
           const connected = message.mcp_servers.some(
             (server) => server.name === "opencode" && server.status === "connected",
           )
-          if (!connected) throw new Error("The OpenCode tool server did not connect to Claude Code")
+          if (!connected) throw new Error("The AWMate tool server did not connect to Claude Code")
         }
         if (
           message.type === "assistant" &&

@@ -10,6 +10,7 @@ import {
   type Stream,
 } from "@agentclientprotocol/sdk"
 import type { OpenCodeClient } from "@opencode/client/effect"
+import { productName } from "@opencode/util/product"
 import { Cause, Deferred, Effect, Ref, Result, Schema, type Scope } from "effect"
 import { ACPCapabilities } from "./capabilities"
 import { ACPCatalog } from "./catalog"
@@ -55,7 +56,7 @@ export const connect = Effect.fnUntraced(function* (client: OpenCodeClient, stre
       )
       return (ctx: HandlerContext<Params>) => run(handler(ctx))
     }
-  const app = agent({ name: "opencode" })
+  const app = agent({ name: productName })
   const request = <Method extends AgentRequestMethod>(
     method: Method,
     make: (name: string) => AgentRequestHandlersByMethod[Method],

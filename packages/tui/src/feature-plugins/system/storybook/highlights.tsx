@@ -13,7 +13,7 @@ const items = [
   },
   {
     title: "Safer Remote Pairing",
-    body: "The first `opencode pair --remote` now warns that it will expose your server and asks for confirmation. For non-interactive use, pass `opencode pair --remote --yes`.",
+    body: "The first `awmate pair --remote` now warns that it will expose your server and asks for confirmation. For non-interactive use, pass `awmate pair --remote --yes`.",
   },
   {
     title: "Installable Web App",

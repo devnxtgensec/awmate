@@ -90,7 +90,12 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
     const refresh = () => void platform.awmateAuthStatus?.().then(setAWMateAccount).catch(error => setAWMateAuthError(String(error)))
     refresh()
     window.addEventListener("focus", refresh)
-    onCleanup(() => window.removeEventListener("focus", refresh))
+    // Keep the plan balance live while the gateway burns credits.
+    const timer = window.setInterval(refresh, 30_000)
+    onCleanup(() => {
+      window.removeEventListener("focus", refresh)
+      window.clearInterval(timer)
+    })
   })
 
   // Modified for AWMate: both sidebar Settings entries share the beta notice.
@@ -853,17 +858,18 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                                     role="progressbar"
                                                     aria-valuemin={0}
                                                     aria-valuemax={usage.allowance}
-                                                    aria-valuenow={usage.used}
+                                                    aria-valuenow={usage.remaining}
                                                   >
+                                                    {/* The bar drains from full as credits are spent, matching the "credits left" copy. */}
                                                     <div
-                                                      class="h-full rounded-full"
+                                                      class="h-full rounded-full transition-all duration-500"
                                                       classList={{
                                                         "bg-v2-state-fg-warning":
                                                           usage.remaining / Math.max(1, usage.allowance) <= 0.1,
                                                         "bg-v2-background-bg-accent":
                                                           usage.remaining / Math.max(1, usage.allowance) > 0.1,
                                                       }}
-                                                      style={{ width: `${Math.min(100, (usage.used / Math.max(1, usage.allowance)) * 100)}%` }}
+                                                      style={{ width: `${Math.min(100, (usage.remaining / Math.max(1, usage.allowance)) * 100)}%` }}
                                                     />
                                                   </div>
                                                   <span class="text-11-regular text-v2-text-text-muted">

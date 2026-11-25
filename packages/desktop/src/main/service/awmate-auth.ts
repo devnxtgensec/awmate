@@ -11,7 +11,23 @@ type LoginAttempt = { controller: AbortController; code?: string }
 
 let activeLogin: LoginAttempt | undefined
 
-export type Account = { email: string; name: string; desktopAccessStatus: string; awsGateway?: boolean; gatewayEnabled: boolean; opencodeEnabled: boolean; models: string[]; modelContexts?: Record<string, number> }
+export type AccountPlan = { id: string; name: string; credits: number; dailyCredits: number | null; expiresAt: string | null }
+
+// Plan balance reported by the platform: credits used against the current allowance.
+export type AccountPlanUsage = { used: number; allowance: number; remaining: number; todayUsed: number }
+
+export type Account = {
+  email: string
+  name: string
+  desktopAccessStatus: string
+  awsGateway?: boolean
+  gatewayEnabled: boolean
+  opencodeEnabled: boolean
+  models: string[]
+  modelContexts?: Record<string, number>
+  plan?: AccountPlan | null
+  planUsage?: AccountPlanUsage | null
+}
 
 export function clearGateway() {
   stopRelayProxy()
@@ -75,10 +91,10 @@ export async function status() {
   }
 
   if (!response.ok) throw new Error("Could not check the AWMate account")
-  // SAFETY: A successful session response is the platform's account payload.
-  const result = (await response.json()) as { account: Account }
+  // SAFETY: A successful session response is the platform's account payload with the plan balance alongside.
+  const result = (await response.json()) as { account: Account; planUsage?: AccountPlanUsage | null }
 
-  return result.account
+  return { ...result.account, planUsage: result.planUsage ?? undefined }
 }
 
 let appliedPermissions = ""

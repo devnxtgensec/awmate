@@ -25,6 +25,22 @@ type PlatformName = "web" | "desktop"
 
 type DesktopOS = "macos" | "windows" | "linux"
 
+/** The signed-in AWMate account's plan, as the platform reports it. */
+export type AWMateAccountPlan = { id: string; name: string; credits: number; dailyCredits: number | null; expiresAt: string | null }
+
+/** The plan's credit balance: credits used against the current allowance. */
+export type AWMateAccountPlanUsage = { used: number; allowance: number; remaining: number; todayUsed: number }
+
+export type AWMateAccount = {
+  email: string
+  name: string
+  desktopAccessStatus: string
+  gatewayEnabled: boolean
+  opencodeEnabled?: boolean
+  plan?: AWMateAccountPlan | null
+  planUsage?: AWMateAccountPlanUsage | null
+}
+
 export type FatalRendererErrorLog = {
   error: string
   url: string
@@ -34,8 +50,8 @@ export type FatalRendererErrorLog = {
 }
 
 type PlatformBase = {
-  awmateAuthStatus?(): Promise<{ email: string; name: string; desktopAccessStatus: string; gatewayEnabled: boolean; opencodeEnabled?: boolean } | null>
-  awmateAuthSignIn?(): Promise<{ email: string; name: string; desktopAccessStatus: string; gatewayEnabled: boolean; opencodeEnabled?: boolean }>
+  awmateAuthStatus?(): Promise<AWMateAccount | null>
+  awmateAuthSignIn?(): Promise<AWMateAccount>
   awmateClaimCredit?(): Promise<string>
   awmateAuthSignOut?(): Promise<void>
   requestMicrophone?(): Promise<boolean>

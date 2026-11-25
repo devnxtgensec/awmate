@@ -10,7 +10,7 @@ import { Tooltip } from "@opencode/ui/tooltip"
 import { Menu } from "@opencode/ui/menu"
 
 import { useLayout } from "@/shell/state/layout"
-import { usePlatform } from "@/runtime/platform/platform"
+import { usePlatform, type AWMateAccount } from "@/runtime/platform/platform"
 import { useCommand } from "@/shell/commands/command"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useSettings } from "@/settings/model"
@@ -82,7 +82,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
     return (words.length > 1 ? [...words[0]][0] + [...words[words.length - 1]][0] : [...words[0]].slice(0, 2).join("")).toLocaleUpperCase()
   }
 
-  const [awmateAccount, setAWMateAccount] = createSignal<{ email: string; name: string; gatewayEnabled: boolean }>()
+  const [awmateAccount, setAWMateAccount] = createSignal<AWMateAccount>()
   const [awmateAuthBusy, setAWMateAuthBusy] = createSignal(false)
   const [awmateAuthError, setAWMateAuthError] = createSignal("")
 
@@ -834,6 +834,52 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                         </Menu.Item>
                                       </Show>
                                       <Show when={awmateAccount()}>
+                                        <Show when={awmateAccount()?.plan || awmateAccount()?.planUsage}>
+                                          {/* "Modified for AWMate": the account's plan and remaining credit balance. */}
+                                          <div class="mx-2 mb-1 flex flex-col gap-1.5 rounded-[6px] bg-v2-background-bg-layer-01 px-2.5 py-2">
+                                            <div class="flex items-center justify-between gap-2">
+                                              <span class="truncate text-11-regular text-v2-text-text-muted">
+                                                {language.t("awmate.gateway.name")}
+                                              </span>
+                                              <span class="shrink-0 rounded-full bg-v2-background-bg-layer-02 px-2 py-0.5 text-11-regular text-v2-text-text-base">
+                                                {awmateAccount()?.plan?.name ?? "Free"}
+                                              </span>
+                                            </div>
+                                            <Show when={awmateAccount()?.planUsage} keyed>
+                                              {(usage) => (
+                                                <div class="flex flex-col gap-1">
+                                                  <div
+                                                    class="h-1 w-full overflow-hidden rounded-full bg-v2-background-bg-layer-02"
+                                                    role="progressbar"
+                                                    aria-valuemin={0}
+                                                    aria-valuemax={usage.allowance}
+                                                    aria-valuenow={usage.used}
+                                                  >
+                                                    <div
+                                                      class="h-full rounded-full"
+                                                      classList={{
+                                                        "bg-v2-state-fg-warning":
+                                                          usage.remaining / Math.max(1, usage.allowance) <= 0.1,
+                                                        "bg-v2-background-bg-accent":
+                                                          usage.remaining / Math.max(1, usage.allowance) > 0.1,
+                                                      }}
+                                                      style={{ width: `${Math.min(100, (usage.used / Math.max(1, usage.allowance)) * 100)}%` }}
+                                                    />
+                                                  </div>
+                                                  <span class="text-11-regular text-v2-text-text-muted">
+                                                    {language.t("awmate.account.planCredits", {
+                                                      remaining: usage.remaining,
+                                                      allowance: usage.allowance,
+                                                    })}
+                                                  </span>
+                                                  <span class="text-11-regular text-v2-text-text-muted">
+                                                    {language.t("awmate.account.usedToday", { used: usage.todayUsed })}
+                                                  </span>
+                                                </div>
+                                              )}
+                                            </Show>
+                                          </div>
+                                        </Show>
                                         <div class="px-2 py-1 text-11-regular text-v2-text-text-muted">
                                           {awmateAccount()?.gatewayEnabled
                                             ? "Gateway access enabled"

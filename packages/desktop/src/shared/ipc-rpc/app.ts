@@ -9,7 +9,30 @@ export const AppAwaitInitialization = Rpc.make("AppAwaitInitialization", { succe
 
 export const AppReconnectService = Rpc.make("AppReconnectService", { success: ServerReadyData })
 
-const AWMateAccount = Schema.Struct({ email: Schema.String, name: Schema.String, desktopAccessStatus: Schema.String, gatewayEnabled: Schema.Boolean, opencodeEnabled: Schema.optional(Schema.Boolean) })
+const AWMateAccountPlan = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String,
+  credits: Schema.Number,
+  dailyCredits: Schema.NullOr(Schema.Number),
+  expiresAt: Schema.NullOr(Schema.String),
+})
+
+const AWMateAccountPlanUsage = Schema.Struct({
+  used: Schema.Number,
+  allowance: Schema.Number,
+  remaining: Schema.Number,
+  todayUsed: Schema.Number,
+})
+
+const AWMateAccount = Schema.Struct({
+  email: Schema.String,
+  name: Schema.String,
+  desktopAccessStatus: Schema.String,
+  gatewayEnabled: Schema.Boolean,
+  opencodeEnabled: Schema.optional(Schema.Boolean),
+  plan: Schema.optional(Schema.NullOr(AWMateAccountPlan)),
+  planUsage: Schema.optional(Schema.NullOr(AWMateAccountPlanUsage)),
+})
 
 export const AppAWMateAuthStatus = Rpc.make("AppAWMateAuthStatus", {
   success: Schema.NullOr(AWMateAccount),

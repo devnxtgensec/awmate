@@ -1,4 +1,5 @@
 import type { DesktopMenuAction, DesktopZoomLevel } from "@opencode/app/desktop-menu"
+import type { AWMateAccount } from "@opencode/app/platform"
 import type { DesktopNativeBundle } from "@opencode/app/i18n/desktop-native"
 import type { StorageSnapshot } from "../shared/ipc-transport"
 import type { WindowBootstrap } from "../shared/window-bootstrap"
@@ -16,8 +17,8 @@ import type {
 export type ElectronAPI = {
   awaitInitialization(): Promise<ServerReadyData>
   reconnectService(signal?: AbortSignal): Promise<ServerReadyData>
-  awmateAuthStatus(): Promise<{ email: string; name: string; desktopAccessStatus: string; gatewayEnabled: boolean; opencodeEnabled?: boolean } | null>
-  awmateAuthSignIn(): Promise<{ email: string; name: string; desktopAccessStatus: string; gatewayEnabled: boolean; opencodeEnabled?: boolean }>
+  awmateAuthStatus(): Promise<AWMateAccount | null>
+  awmateAuthSignIn(): Promise<AWMateAccount>
   awmateClaimCredit(): Promise<string>
   awmateAuthSignOut(): Promise<void>
   onSidecarChanged(cb: (data: ServerReadyData) => void): () => void

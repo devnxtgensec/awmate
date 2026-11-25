@@ -4,7 +4,7 @@ export const dict = {
   // "Modified for AWMate": copy for the branded sign-in and browser recovery states.
   "awmate.auth.eyebrow": "Secure access",
   "awmate.auth.title": "Sign in to AWMate",
-  "awmate.auth.body": "Sign in with Google to use AWMate Gateway with $1 of daily credit.",
+  "awmate.auth.body": "Sign in with Google to use the AWMate Gateway.",
   "awmate.auth.continue": "Continue with Google",
   "awmate.auth.waiting": "Waiting for Google sign-in…",
   "awmate.auth.browserOpen": "Google sign-in is open",
@@ -19,6 +19,12 @@ export const dict = {
   "awmate.gateway.name": "AWMate Gateway",
   "awmate.gateway.choose": "Choose gateway",
   "awmate.auth.unavailable": "Could not check your AWMate account. Check your connection and try again.",
+  // "Modified for AWMate": account menu plan and credit balance.
+  "awmate.account.planCredits": "{{remaining}} of {{allowance}} credits left",
+  "awmate.account.usedToday": "{{used}} used today",
+  "awmate.account.dailyCeiling": "Up to {{ceiling}} credits per day",
+  "awmate.account.planExpires": "Renews {{date}}",
+  "awmate.account.noPlan": "No plan — the free daily credit applies",
   "experiment.voiceCalls": "Voice calls",
   "voice.call": "Call",
   "voice.mute": "Mute",

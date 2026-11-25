@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { createEffect, createMemo, Show, onCleanup, untrack, type JSX } from "solid-js"
+import { createEffect, createMemo, createSignal, Show, onCleanup, untrack, type JSX } from "solid-js"
 import { Key } from "@solid-primitives/keyed"
 import { createStore, reconcile } from "solid-js/store"
 import { useQuery } from "@tanstack/solid-query"
@@ -221,6 +221,24 @@ function ProjectList(props: {
 
     if (ids.length === saved.length && ids.every((id, index) => id === saved[index])) return
     untrack(() => props.onReorder(key, ids))
+  })
+
+  // Modified for AWMate: using a project moves it to the top of the sidebar, so the list follows
+  // recency (most recently used first, unused below). Only a change of the last-used project bumps,
+  // so dragging rows still reorders manually until the next use.
+  const [bumped, setBumped] = createSignal<string>()
+  createEffect(() => {
+    const key = server()
+    const last = ctx()?.projects.last()?.id
+    const list = ctx()?.projects.used() ?? []
+
+    if (!props.ready || !servers.hydrated() || !key || !ctx()?.sync.project.ready()) return
+    if (!last || !list.some((project) => project.id === last) || bumped() === last) return
+    setBumped(last)
+    const order = props.state.order[key] ?? []
+
+    if (order[0] === last) return
+    untrack(() => props.onReorder(key, [last, ...order.filter((id) => id !== last)]))
   })
 
   const sessions = useQuery(() => ({

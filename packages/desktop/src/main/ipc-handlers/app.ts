@@ -14,7 +14,7 @@ import { BackgroundService } from "../service/background-service"
 import { SidecarCredentials } from "../service/sidecar-credentials"
 import { getWindowID, setBackgroundColor } from "../windows"
 import { sender } from "./context"
-import { refreshPermissions, clearGateway, prepareGateway, signIn, signOut, status } from "../service/awmate-auth"
+import { refreshPermissions, clearGateway, gatewayBaseURL, prepareGateway, signIn, signOut, status } from "../service/awmate-auth"
 import { openExternalURL } from "../files"
 
 export const appHandlers = AppRpcs.toLayer(
@@ -25,7 +25,31 @@ export const appHandlers = AppRpcs.toLayer(
     const logging = yield* DesktopLogging.Service
 
     return AppRpcs.of({
-      AppAwaitInitialization: () => background.connection.pipe(Effect.map(SidecarCredentials.ready)),
+      AppAwaitInitialization: () =>
+        background.connection.pipe(
+          Effect.flatMap((data) =>
+            Effect.promise(async () => {
+              const expectedBaseURL = gatewayBaseURL()
+
+              if (!expectedBaseURL) return SidecarCredentials.ready(data)
+
+              const providerURL = `${data.url}/api/provider/awmate`
+              const authorization = SidecarCredentials.authorization(data, providerURL)
+              const response = await fetch(providerURL, { headers: authorization ? { Authorization: authorization } : {} }).catch(() => undefined)
+
+              if (!response?.ok) return SidecarCredentials.ready(data)
+
+              // SAFETY: The local provider endpoint returns its configured provider info.
+              const result = (await response.json()) as { data?: { settings?: { baseURL?: string } } }
+
+              if (result.data?.settings?.baseURL === expectedBaseURL) return SidecarCredentials.ready(data)
+
+              const restarted = await Effect.runPromise(background.restart)
+
+              return SidecarCredentials.ready(restarted)
+            }),
+          ),
+        ),
       AppReconnectService: () => background.reconnect.pipe(Effect.map(SidecarCredentials.ready)),
       AppAWMateAuthStatus: () => promise(async () => {
         const account = await status()

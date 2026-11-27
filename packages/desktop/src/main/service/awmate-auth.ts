@@ -31,6 +31,7 @@ export type Account = {
 
 export function clearGateway() {
   stopRelayProxy()
+  configuredGatewayBaseURL = undefined
 
   if (process.env.AWMATE_DESKTOP_GATEWAY_CONFIG !== "1") return false
   delete process.env.OPENCODE_CONFIG_CONTENT
@@ -81,6 +82,12 @@ export async function status() {
 }
 
 let appliedPermissions = ""
+
+let configuredGatewayBaseURL: string | undefined
+
+export function gatewayBaseURL() {
+  return configuredGatewayBaseURL
+}
 
 function permissions(account: Account | null) {
   return JSON.stringify(account && [account.email, account.desktopAccessStatus, account.opencodeEnabled, account.gatewayEnabled, account.awsGateway, account.models])
@@ -142,6 +149,8 @@ export async function prepareGateway() {
   const baseURL = result.account.gatewayEnabled
     ? await startRelayProxy(result.account.awsGateway ? "aws" : "cloudflare").catch(() => cloudflareBaseURL)
     : cloudflareBaseURL
+
+  configuredGatewayBaseURL = result.account.gatewayEnabled ? baseURL : undefined
 
   process.env.AWMATE_GATEWAY_SESSION = current
   // AWMate Gateway is the default. The OpenCode gateway is the client's built-in

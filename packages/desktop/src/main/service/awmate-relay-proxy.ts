@@ -1,4 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http"
+import { isolatedServicePort } from "./service-port"
 
 // The desktop points the AWMate provider at this local proxy. The proxy tries the
 // preferred gateway first (Cloudflare by default, AWS for opted-in accounts) and
@@ -49,9 +50,14 @@ export async function startRelayProxy(prefer: Upstream = "cloudflare") {
     })
   })
 
+  // The background CLI service can outlive Electron and retain this provider URL.
+  // Reusing a stable per-profile port lets a newly started desktop relay serve it
+  // after an app restart. Non-AWMate runs keep an ephemeral port for isolation.
+  const port = import.meta.env.AWMATE_BUILD === true ? Number(isolatedServicePort(process.env)) + 1 : 0
+
   await new Promise<void>((resolve, reject) => {
     created.once("error", reject)
-    created.listen(0, "127.0.0.1", () => resolve())
+    created.listen(port, "127.0.0.1", () => resolve())
   })
   const address = created.address()
 
